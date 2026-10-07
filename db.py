@@ -76,6 +76,12 @@ def init_db():
             nota REAL,
             created_at TEXT
         )""", commit=True)
+    query("""
+        CREATE TABLE IF NOT EXISTS pecas_editadas (
+            chave TEXT PRIMARY KEY,
+            dados_json TEXT NOT NULL,
+            updated_at TEXT
+        )""", commit=True)
     _seed_exemplos()
 
 
@@ -154,3 +160,19 @@ def obter_tentativa(tid):
     if r:
         r["resultado"] = json.loads(r.pop("resultado_json")) if r.get("resultado_json") else None
     return r
+
+
+# ------------------------------------------------------------------ edições do catálogo de peças
+
+def edicoes_pecas():
+    return {r["chave"]: json.loads(r["dados_json"]) for r in query("SELECT * FROM pecas_editadas")}
+
+
+def salvar_edicao_peca(chave, dados):
+    query("DELETE FROM pecas_editadas WHERE chave = ?", (chave,), commit=True)
+    query("INSERT INTO pecas_editadas (chave, dados_json, updated_at) VALUES (?, ?, ?)",
+          (chave, json.dumps(dados, ensure_ascii=False), agora()), commit=True)
+
+
+def remover_edicao_peca(chave):
+    query("DELETE FROM pecas_editadas WHERE chave = ?", (chave,), commit=True)
