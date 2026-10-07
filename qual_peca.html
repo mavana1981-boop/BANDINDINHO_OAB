@@ -19,7 +19,7 @@
       <p><strong>Prazo:</strong> <span id="v-prazo"></span></p>
       <div class="acoes">
         <a class="botao" id="v-redigir" href="#">Redigir esta peça</a>
-        <a class="botao secundario" href="{{ url_for('qual_peca_sortear') }}">Próxima prova</a>
+        <a class="botao secundario" id="v-proxima" href="{{ url_for('qual_peca_sortear', atual=prova.id) }}">Próxima prova</a>
       </div>
     </div>
   </section>
@@ -44,6 +44,9 @@ document.querySelectorAll('.opcao').forEach(btn => btn.addEventListener('click',
   document.getElementById('v-quando').textContent = d.quando;
   document.getElementById('v-prazo').textContent = d.prazo;
   document.getElementById('v-redigir').href = d.link_estrutura;
+  const prox = document.getElementById('v-proxima');
+  if (d.restantes === 0) { prox.textContent = 'Ver resultado'; prox.href = '{{ url_for("qual_peca_lista") }}'; }
+  else if (d.acertou) { prox.textContent = `Próxima prova (faltam ${d.restantes})`; }
   v.hidden = false;
 }));
 </script>
