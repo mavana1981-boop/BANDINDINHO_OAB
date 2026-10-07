@@ -18,6 +18,7 @@
       <a href="{{ url_for('estruturas') }}" {% if ep in ['estruturas','estrutura_peca','redigir'] %}aria-current="page"{% endif %}>Estruturas</a>
       <a href="{{ url_for('importar') }}" {% if ep in ['importar','revisar'] %}aria-current="page"{% endif %}>Provas</a>
       <a href="{{ url_for('historico') }}" {% if ep in ['historico','tentativa'] %}aria-current="page"{% endif %}>Histórico</a>
+      <a href="{{ url_for('sair') }}" title="Zera as estatísticas do Qual é a peça">Sair</a>
     </nav>
   </header>
   {% block cheio %}
