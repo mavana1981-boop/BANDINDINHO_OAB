@@ -3,7 +3,8 @@ import json
 import os
 import random
 
-from flask import Flask, abort, flash, jsonify, redirect, render_template, request, url_for
+from flask import (Flask, abort, flash, jsonify, redirect, render_template, request,
+                   send_from_directory, url_for)
 
 import db
 import ia
@@ -11,9 +12,24 @@ import ia
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 META_PROVAS = 30
 
-app = Flask(__name__,
-            template_folder=os.path.join(BASE_DIR, "templates"),
-            static_folder=os.path.join(BASE_DIR, "static"))
+def _pasta(nome):
+    """Usa a subpasta se existir; senão, a raiz (repositório enviado sem pastas)."""
+    p = os.path.join(BASE_DIR, nome)
+    return p if os.path.isdir(p) else BASE_DIR
+
+
+TEMPLATES_DIR = _pasta("templates")
+STATIC_DIR = _pasta("static")
+
+app = Flask(__name__, template_folder=TEMPLATES_DIR, static_folder=None)
+
+
+@app.route("/static/<path:filename>", endpoint="static")
+def estaticos(filename):
+    # só serve CSS e JS: evita expor app.py, .env ou o banco quando os arquivos estão na raiz
+    if os.path.splitext(filename)[1].lower() not in {".css", ".js"}:
+        abort(404)
+    return send_from_directory(STATIC_DIR, filename)
 app.secret_key = os.environ.get("SECRET_KEY", "troque-esta-chave")
 app.config["MAX_CONTENT_LENGTH"] = 40 * 1024 * 1024
 
