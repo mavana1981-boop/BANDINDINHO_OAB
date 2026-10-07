@@ -11,11 +11,13 @@ import ia
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 META_PROVAS = 30
 
-app = Flask(__name__)
+app = Flask(__name__,
+            template_folder=os.path.join(BASE_DIR, "templates"),
+            static_folder=os.path.join(BASE_DIR, "static"))
 app.secret_key = os.environ.get("SECRET_KEY", "troque-esta-chave")
 app.config["MAX_CONTENT_LENGTH"] = 40 * 1024 * 1024
 
-with open(os.path.join(BASE_DIR, "data", "pecas.json"), encoding="utf-8") as f:
+with open(db.caminho_dado("pecas.json"), encoding="utf-8") as f:
     PECAS = json.load(f)
 PECAS_POR_KEY = {p["key"]: p for p in PECAS}
 # peças mais cobradas entram com mais frequência como alternativas do quiz

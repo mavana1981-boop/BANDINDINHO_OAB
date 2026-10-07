@@ -13,6 +13,15 @@ if IS_PG:
     import psycopg2.extras
 
 
+def caminho_dado(nome):
+    """Procura o arquivo em data/ e, se não achar, na raiz do projeto."""
+    for p in (os.path.join(BASE_DIR, "data", nome), os.path.join(BASE_DIR, nome)):
+        if os.path.exists(p):
+            return p
+    raise FileNotFoundError(
+        f"{nome} não encontrado em data/ nem na raiz. Confira se a pasta data/ foi enviada ao GitHub.")
+
+
 def _connect():
     if IS_PG:
         return psycopg2.connect(DATABASE_URL.replace("postgres://", "postgresql://", 1))
@@ -73,7 +82,7 @@ def init_db():
 def _seed_exemplos():
     if query("SELECT id FROM provas WHERE origem = 'exemplo' LIMIT 1", one=True):
         return
-    with open(os.path.join(BASE_DIR, "data", "casos_exemplo.json"), encoding="utf-8") as f:
+    with open(caminho_dado("casos_exemplo.json"), encoding="utf-8") as f:
         for caso in json.load(f):
             inserir_prova(caso)
 
