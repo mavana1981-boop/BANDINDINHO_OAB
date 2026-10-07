@@ -4,6 +4,10 @@
 <p class="discreto"><a href="{{ url_for('estruturas') }}">Estruturas</a></p>
 <h1>{{ peca.nome }}</h1>
 <p class="lead">{{ peca.quando }}</p>
+<div class="acoes" style="margin:-.5rem 0 1.5rem">
+  <a class="botao secundario" href="{{ url_for('editar_peca', key=peca.key) }}">Editar estrutura</a>
+  {% if peca.editada %}<span class="discreto">Estrutura editada por você</span>{% endif %}
+</div>
 <div class="ficha">
   <section>
     <h2 style="margin-top:0">Esqueleto-modelo</h2>
