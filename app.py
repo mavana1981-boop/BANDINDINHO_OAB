@@ -4,7 +4,7 @@ import os
 import random
 
 from flask import (Flask, abort, flash, jsonify, redirect, render_template, request,
-                   send_from_directory, url_for)
+                   send_from_directory, session, url_for)
 
 import db
 import ia
@@ -69,11 +69,24 @@ def inicio():
 
 
 # ------------------------------------------------------------------ 1. Qual é a peça
+# As estatísticas deste módulo ficam só na sessão do navegador: somem ao clicar em "Sair"
+# ou ao fechar o navegador. Nada é gravado no banco.
+
+def _quiz():
+    q = session.get("quiz") or {"acertos": [], "erros": 0, "respondidas": 0}
+    session["quiz"] = q
+    return q
+
 
 @app.route("/qual-e-a-peca")
 def qual_peca_lista():
     provas = db.listar_provas()
-    return render_template("qual_peca_lista.html", provas=provas, status=db.status_quiz(),
+    q = _quiz()
+    ids = {p["id"] for p in provas}
+    acertos = [i for i in q["acertos"] if i in ids]
+    return render_template("qual_peca_lista.html", provas=provas, acertos=set(acertos),
+                           n_acertos=len(acertos), erros=q["erros"], respondidas=q["respondidas"],
+                           concluiu=bool(provas) and len(acertos) == len(provas),
                            oficiais=db.contar_oficiais(), meta=META_PROVAS)
 
 
@@ -82,14 +95,22 @@ def qual_peca_sortear():
     provas = db.listar_provas()
     if not provas:
         return redirect(url_for("importar"))
-    status = db.status_quiz()
-    pendentes = [p for p in provas if not status.get(p["id"])] or provas
+    acertos = set(_quiz()["acertos"])
+    pendentes = [p for p in provas if p["id"] not in acertos]
+    if not pendentes:  # acertou todas: não repete nenhuma
+        return redirect(url_for("qual_peca_lista"))
+    atual = request.args.get("atual", type=int)
+    if len(pendentes) > 1:  # evita cair de novo na mesma prova logo em seguida
+        pendentes = [p for p in pendentes if p["id"] != atual]
     return redirect(url_for("qual_peca", prova_id=random.choice(pendentes)["id"]))
 
 
 @app.route("/qual-e-a-peca/<int:prova_id>")
 def qual_peca(prova_id):
     prova = _prova_ou_404(prova_id)
+    if prova_id in _quiz()["acertos"]:
+        flash(f"Você já acertou {prova['exame']} nesta sessão. Sorteie outra prova.", "ok")
+        return redirect(url_for("qual_peca_lista"))
     correta = prova["peca_correta"]
     pool = [k for k in FREQUENTES if k != correta]
     outras = [p["key"] for p in PECAS if p["key"] not in pool and p["key"] != correta]
@@ -105,7 +126,15 @@ def api_qual_peca(prova_id):
     escolhida = (request.get_json(silent=True) or {}).get("peca")
     correta = PECAS_POR_KEY[prova["peca_correta"]]
     acertou = escolhida == correta["key"]
-    db.registrar_tentativa(prova_id, "peca", peca_escolhida=escolhida, acertou=acertou)
+    q = _quiz()
+    q["respondidas"] += 1
+    if acertou and prova_id not in q["acertos"]:
+        q["acertos"].append(prova_id)
+    elif not acertou:
+        q["erros"] += 1
+    session["quiz"] = q
+    session.modified = True
+    restantes = len([p for p in db.listar_provas() if p["id"] not in q["acertos"]])
     return jsonify({
         "acertou": acertou,
         "correta": correta["key"],
@@ -114,7 +143,14 @@ def api_qual_peca(prova_id):
         "quando": correta["quando"],
         "prazo": correta["prazo"],
         "link_estrutura": url_for("redigir", key=correta["key"], prova_id=prova_id),
+        "restantes": restantes,
     })
+
+
+@app.route("/sair")
+def sair():
+    session.clear()
+    return redirect(url_for("inicio"))
 
 
 # ------------------------------------------------------------------ 2. Estruturas
