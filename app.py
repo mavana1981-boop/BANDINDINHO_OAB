@@ -34,8 +34,17 @@ app.secret_key = os.environ.get("SECRET_KEY", "troque-esta-chave")
 app.config["MAX_CONTENT_LENGTH"] = 40 * 1024 * 1024
 
 with open(db.caminho_dado("pecas.json"), encoding="utf-8") as f:
-    PECAS = json.load(f)
-PECAS_POR_KEY = {p["key"]: p for p in PECAS}
+    PECAS_BASE = json.load(f)
+
+
+def catalogo():
+    """Peças do pecas.json com as edições do usuário (gravadas no banco) por cima."""
+    edicoes = db.edicoes_pecas()
+    return [{**p, **edicoes.get(p["key"], {}), "editada": p["key"] in edicoes} for p in PECAS_BASE]
+
+
+def por_key():
+    return {p["key"]: p for p in catalogo()}
 # peças mais cobradas entram com mais frequência como alternativas do quiz
 FREQUENTES = ["contestacao", "recurso_ordinario", "reclamacao_trabalhista", "agravo_peticao",
               "embargos_execucao", "recurso_revista", "contrarrazoes", "mandado_seguranca"]
@@ -45,11 +54,11 @@ db.init_db()
 
 @app.context_processor
 def globais():
-    return {"PECAS_POR_KEY": PECAS_POR_KEY}
+    return {"PECAS_POR_KEY": por_key()}
 
 
 def _peca_ou_404(key):
-    peca = PECAS_POR_KEY.get(key)
+    peca = por_key().get(key)
     if not peca:
         abort(404)
     return peca
@@ -65,7 +74,7 @@ def _prova_ou_404(prova_id):
 @app.route("/")
 def inicio():
     return render_template("index.html", oficiais=db.contar_oficiais(), meta=META_PROVAS,
-                           total=len(db.listar_provas()), n_pecas=len(PECAS))
+                           total=len(db.listar_provas()), n_pecas=len(PECAS_BASE))
 
 
 # ------------------------------------------------------------------ 1. Qual é a peça
@@ -113,9 +122,10 @@ def qual_peca(prova_id):
         return redirect(url_for("qual_peca_lista"))
     correta = prova["peca_correta"]
     pool = [k for k in FREQUENTES if k != correta]
-    outras = [p["key"] for p in PECAS if p["key"] not in pool and p["key"] != correta]
+    outras = [p["key"] for p in PECAS_BASE if p["key"] not in pool and p["key"] != correta]
     distratores = random.sample(pool, 3) + random.sample(outras, 1)
-    opcoes = [PECAS_POR_KEY[k] for k in distratores + [correta]]
+    pk = por_key()
+    opcoes = [pk[k] for k in distratores + [correta]]
     random.shuffle(opcoes)
     return render_template("qual_peca.html", prova=prova, opcoes=opcoes)
 
@@ -124,7 +134,7 @@ def qual_peca(prova_id):
 def api_qual_peca(prova_id):
     prova = _prova_ou_404(prova_id)
     escolhida = (request.get_json(silent=True) or {}).get("peca")
-    correta = PECAS_POR_KEY[prova["peca_correta"]]
+    correta = por_key()[prova["peca_correta"]]
     acertou = escolhida == correta["key"]
     q = _quiz()
     q["respondidas"] += 1
@@ -160,13 +170,39 @@ def estruturas():
     contagem = {}
     for p in db.listar_provas():
         contagem[p["peca_correta"]] = contagem.get(p["peca_correta"], 0) + 1
-    return render_template("estruturas.html", pecas=PECAS, contagem=contagem)
+    return render_template("estruturas.html", pecas=catalogo(), contagem=contagem)
 
 
 @app.route("/estruturas/<key>")
 def estrutura_peca(key):
     peca = _peca_ou_404(key)
     return render_template("estrutura_peca.html", peca=peca, casos=db.listar_provas(key))
+
+
+@app.route("/estruturas/<key>/editar", methods=["GET", "POST"])
+def editar_peca(key):
+    peca = _peca_ou_404(key)
+    if request.method == "POST":
+        def linhas(campo):
+            return [l.strip() for l in request.form.get(campo, "").splitlines() if l.strip()]
+        dados = {c: request.form.get(c, "").strip() for c in ["nome", "quando", "prazo", "base_legal", "enderecamento"]}
+        dados["estrutura"] = linhas("estrutura")
+        dados["dicas"] = linhas("dicas")
+        if not dados["nome"] or not dados["estrutura"]:
+            flash("O nome e ao menos um passo da estrutura são obrigatórios.", "erro")
+            return render_template("editar_peca.html", peca={**peca, **dados})
+        db.salvar_edicao_peca(key, dados)
+        flash("Estrutura salva.", "ok")
+        return redirect(url_for("estrutura_peca", key=key))
+    return render_template("editar_peca.html", peca=peca)
+
+
+@app.post("/estruturas/<key>/restaurar")
+def restaurar_peca(key):
+    _peca_ou_404(key)
+    db.remover_edicao_peca(key)
+    flash("Estrutura original restaurada.", "ok")
+    return redirect(url_for("estrutura_peca", key=key))
 
 
 @app.route("/estruturas/<key>/caso/<int:prova_id>")
@@ -187,7 +223,7 @@ def api_corrigir(prova_id):
     if not prova["padrao"].get("itens"):
         return jsonify({"erro": "Esta prova foi importada sem padrão de resposta. Importe o PDF do padrão para corrigir."}), 400
     try:
-        resultado = ia.corrigir(prova, PECAS_POR_KEY[prova["peca_correta"]], resposta)
+        resultado = ia.corrigir(prova, por_key()[prova["peca_correta"]], resposta)
     except ia.ErroIA as e:
         return jsonify({"erro": str(e)}), 502
     db.registrar_tentativa(prova_id, "redacao", resposta=resposta, resultado=resultado,
@@ -206,7 +242,7 @@ def importar():
                 dados = json.load(arquivo)
                 dados = dados if isinstance(dados, list) else [dados]
                 for d in dados:
-                    if d.get("peca_correta") not in PECAS_POR_KEY:
+                    if d.get("peca_correta") not in por_key():
                         raise ValueError(f"peca_correta inválida: {d.get('peca_correta')}")
                     d.setdefault("origem", "oficial")
                     db.inserir_prova(d)
@@ -217,12 +253,12 @@ def importar():
 
         pdfs = [f.read() for f in request.files.getlist("pdfs") if f and f.filename]
         try:
-            dados = ia.importar_pdfs(pdfs, PECAS)
+            dados = ia.importar_pdfs(pdfs, catalogo())
         except ia.ErroIA as e:
             flash(str(e), "erro")
             return redirect(url_for("importar"))
         novo_id = db.inserir_prova(dados)
-        flash(f"{dados['exame']} importado: peça {PECAS_POR_KEY[dados['peca_correta']]['nome']}. "
+        flash(f"{dados['exame']} importado: peça {por_key()[dados['peca_correta']]['nome']}. "
               "Confira o enunciado e a pontuação antes de treinar.", "ok")
         return redirect(url_for("revisar", prova_id=novo_id))
     return render_template("importar.html", provas=db.listar_provas(),
