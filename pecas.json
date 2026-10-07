@@ -1,0 +1,297 @@
+[
+  {
+    "key": "reclamacao_trabalhista",
+    "nome": "Reclamação trabalhista",
+    "quando": "Você representa o empregado (ou ex-empregado) e ainda não existe processo. O enunciado pede a medida judicial para buscar direitos decorrentes da relação de emprego.",
+    "prazo": "Prescrição bienal após a extinção do contrato, alcançando os últimos 5 anos (art. 7º, XXIX, CF; art. 11 CLT).",
+    "base_legal": "Art. 840, §1º, CLT; art. 319 CPC (subsidiário, art. 769 CLT).",
+    "enderecamento": "Excelentíssimo Senhor Juiz da __ Vara do Trabalho de [cidade/UF]",
+    "estrutura": [
+      "Endereçamento à Vara do Trabalho (competência territorial do local da prestação de serviços, art. 651 CLT)",
+      "Qualificação completa do reclamante (nome, nacionalidade, estado civil, profissão, CPF, CTPS, endereço, e-mail) e menção ao advogado com procuração",
+      "Nome da ação: Reclamação Trabalhista, indicando o rito (ordinário ou sumaríssimo, art. 852-A CLT)",
+      "Qualificação da reclamada (razão social, CNPJ, endereço)",
+      "Dos fatos e fundamentos: um tópico por direito violado, com fato + dispositivo legal/súmula + conclusão",
+      "Tutela de urgência, se houver (art. 300 CPC c/c art. 769 CLT)",
+      "Pedidos certos, determinados e com indicação de valor (art. 840, §1º, CLT)",
+      "Requerimentos: notificação da reclamada (art. 841 CLT), produção de provas, gratuidade de justiça (art. 790, §§3º e 4º), honorários sucumbenciais (art. 791-A)",
+      "Valor da causa",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº — sem identificar o candidato"
+    ],
+    "dicas": [
+      "Pedido sem valor leva à extinção daquele pedido sem resolução de mérito (art. 840, §3º).",
+      "Se o enunciado mencionar urgência (gestante, dirigente sindical, acidentado), peça tutela antecipada de reintegração."
+    ]
+  },
+  {
+    "key": "contestacao",
+    "nome": "Contestação",
+    "quando": "Você representa a reclamada (empregador) que foi notificada de uma reclamação trabalhista já ajuizada e precisa se defender.",
+    "prazo": "Até a audiência (art. 847 CLT); no PJe, pode ser apresentada até a audiência, com sigilo (art. 847, parágrafo único).",
+    "base_legal": "Arts. 847 e 767 CLT; arts. 335 a 342 CPC (subsidiários).",
+    "enderecamento": "Excelentíssimo Senhor Juiz da __ Vara do Trabalho de [cidade/UF] — Processo nº ...",
+    "estrutura": [
+      "Endereçamento à Vara onde tramita o processo, com o número dos autos",
+      "Qualificação da reclamada e menção ao advogado com procuração",
+      "Nome da peça: Contestação, nos autos da reclamação movida por [reclamante]",
+      "Preliminares (art. 337 CPC): incompetência, inépcia, ilegitimidade, litispendência, coisa julgada etc.",
+      "Prejudiciais de mérito: prescrição bienal/quinquenal (art. 7º, XXIX, CF; art. 11 CLT; Súm. 308 TST), decadência",
+      "Mérito: impugnação específica de cada pedido (art. 341 CPC), com fundamento legal",
+      "Compensação/dedução de valores pagos (art. 767 CLT; Súm. 48 TST) e, se cabível, reconvenção",
+      "Requerimentos: acolhimento das preliminares, prescrição, improcedência dos pedidos, produção de provas, honorários sucumbenciais (art. 791-A)",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": [
+      "Na contestação não há pedido de 'procedência': o pedido é de improcedência.",
+      "A compensação só pode ser arguida na contestação (art. 767 CLT)."
+    ]
+  },
+  {
+    "key": "recurso_ordinario",
+    "nome": "Recurso ordinário",
+    "quando": "Existe sentença (decisão definitiva ou terminativa) da Vara do Trabalho e uma das partes quer reformá-la ou anulá-la.",
+    "prazo": "8 dias (art. 895, I, CLT).",
+    "base_legal": "Art. 895, I, CLT; art. 899 CLT (depósito recursal); art. 789, §1º (custas).",
+    "enderecamento": "Interposição: Juiz da __ Vara do Trabalho. Razões: Egrégio Tribunal Regional do Trabalho da __ Região",
+    "estrutura": [
+      "Peça de interposição dirigida ao Juiz da Vara que proferiu a sentença, com número do processo",
+      "Qualificação resumida do recorrente e pedido de recebimento e remessa ao TRT",
+      "Pedido de intimação do recorrido para contrarrazões (art. 900 CLT)",
+      "Comprovação de preparo pelo empregador: custas e depósito recursal (art. 789, §1º; art. 899, §§1º e 4º; possibilidade de seguro garantia, §11)",
+      "Razões recursais dirigidas ao TRT: Egrégio Tribunal, Colenda Turma, Ínclitos Julgadores",
+      "Pressupostos de admissibilidade: tempestividade, preparo, regularidade de representação, interesse",
+      "Preliminares de nulidade, se houver (cerceamento de defesa, negativa de prestação jurisdicional)",
+      "Mérito: um tópico para cada capítulo da sentença atacado, com fundamento",
+      "Pedido: conhecimento e provimento do recurso para reformar (ou anular) a sentença",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": [
+      "Recurso do empregado não exige depósito recursal; o do empregador, sim (com redução pela metade para microempresas, art. 899, §9º).",
+      "Peça sem interposição e razões separadas perde pontos de estrutura."
+    ]
+  },
+  {
+    "key": "agravo_peticao",
+    "nome": "Agravo de petição",
+    "quando": "A decisão impugnada foi proferida na fase de execução (ex.: decisão que julga embargos à execução ou impugnação à sentença de liquidação).",
+    "prazo": "8 dias (art. 897, a, CLT).",
+    "base_legal": "Art. 897, a e §1º, CLT; Súm. 416 TST.",
+    "enderecamento": "Interposição: Juiz da __ Vara do Trabalho (juízo da execução). Razões: Egrégio TRT da __ Região",
+    "estrutura": [
+      "Peça de interposição ao Juiz da execução, com número do processo",
+      "Delimitação justificada das matérias e dos valores impugnados (art. 897, §1º, CLT) — pressuposto específico",
+      "Pedido de intimação do agravado para contraminuta e remessa ao TRT",
+      "Pressupostos: tempestividade, garantia do juízo, regularidade de representação",
+      "Razões ao TRT: Egrégio Tribunal, Colenda Turma",
+      "Mérito: fundamentos de reforma da decisão da execução",
+      "Pedido de conhecimento e provimento",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": [
+      "Sem delimitação de matérias e valores o agravo não é conhecido.",
+      "Custas na execução são pagas ao final (art. 789-A CLT)."
+    ]
+  },
+  {
+    "key": "embargos_execucao",
+    "nome": "Embargos à execução",
+    "quando": "O executado já teve o juízo garantido (penhora ou depósito) e quer impugnar a execução trabalhista.",
+    "prazo": "5 dias após a garantia do juízo (art. 884 CLT).",
+    "base_legal": "Art. 884 CLT; art. 882 CLT (garantia).",
+    "enderecamento": "Excelentíssimo Senhor Juiz da __ Vara do Trabalho de [cidade/UF] — Processo nº ...",
+    "estrutura": [
+      "Endereçamento ao juízo da execução com número do processo",
+      "Qualificação do embargante e advogado",
+      "Comprovação da garantia do juízo e tempestividade",
+      "Matérias: cumprimento da decisão, quitação, prescrição da dívida (art. 884, §1º), excesso de execução, impenhorabilidade",
+      "Impugnação dos cálculos, se for o caso",
+      "Requerimentos: efeito suspensivo, intimação do exequente, procedência dos embargos, provas",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": [
+      "Entidades filantrópicas e seus diretores são dispensados da garantia (art. 884, §6º)."
+    ]
+  },
+  {
+    "key": "recurso_revista",
+    "nome": "Recurso de revista",
+    "quando": "Há acórdão do TRT em recurso ordinário (dissídio individual) que viola lei federal ou a Constituição, ou diverge de outro TRT, SDI ou súmula do TST.",
+    "prazo": "8 dias (art. 896 CLT).",
+    "base_legal": "Arts. 896 e 896-A CLT; Súm. 297 TST (prequestionamento).",
+    "enderecamento": "Interposição: Desembargador Presidente do TRT da __ Região. Razões: Colendo Tribunal Superior do Trabalho",
+    "estrutura": [
+      "Interposição ao Presidente (ou Vice) do TRT",
+      "Pedido de intimação do recorrido e remessa ao TST",
+      "Preparo: custas e depósito recursal",
+      "Razões ao TST: Colendo Tribunal, Colenda Turma, Ministros",
+      "Transcendência econômica, política, social ou jurídica (art. 896-A)",
+      "Prequestionamento e indicação do trecho do acórdão (art. 896, §1º-A, I)",
+      "Cabimento: violação literal de lei/CF ou divergência jurisprudencial, com demonstração analítica",
+      "Pedido de conhecimento e provimento",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": [
+      "No rito sumaríssimo só cabe por contrariedade a súmula do TST, súmula vinculante do STF ou violação direta da CF (art. 896, §9º)."
+    ]
+  },
+  {
+    "key": "embargos_declaracao",
+    "nome": "Embargos de declaração",
+    "quando": "A decisão tem omissão, contradição, obscuridade, erro material ou manifesto equívoco no exame dos pressupostos do recurso.",
+    "prazo": "5 dias (art. 897-A CLT).",
+    "base_legal": "Art. 897-A CLT; art. 1.022 CPC.",
+    "enderecamento": "Ao mesmo juízo ou relator que proferiu a decisão embargada",
+    "estrutura": [
+      "Endereçamento ao prolator da decisão, com número do processo",
+      "Qualificação do embargante",
+      "Tempestividade (5 dias)",
+      "Indicação precisa do vício (omissão, contradição, obscuridade, erro material)",
+      "Pedido de efeito modificativo, se for o caso, com intimação da parte contrária (art. 897-A, §2º)",
+      "Pedido de acolhimento para sanar o vício",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": [
+      "Interrompem o prazo para outros recursos, salvo se intempestivos, irregular a representação ou ausente assinatura (art. 897-A, §3º)."
+    ]
+  },
+  {
+    "key": "agravo_instrumento",
+    "nome": "Agravo de instrumento",
+    "quando": "O juízo de admissibilidade negou seguimento a um recurso (ordinário, de revista, agravo de petição).",
+    "prazo": "8 dias (art. 897, b, CLT).",
+    "base_legal": "Art. 897, b, CLT; art. 899, §7º (depósito de 50%).",
+    "enderecamento": "Interposição ao juízo que denegou o recurso. Razões ao tribunal competente para o recurso trancado",
+    "estrutura": [
+      "Interposição ao juízo que denegou seguimento",
+      "Pedido de juízo de retratação e, mantida a decisão, remessa ao tribunal",
+      "Depósito recursal de 50% do valor do recurso que se pretende destrancar (art. 899, §7º)",
+      "Razões: demonstrar que o recurso trancado preenchia os pressupostos",
+      "Pedido de provimento para destrancar e julgar o recurso principal",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": [
+      "No processo do trabalho, só cabe contra despachos que denegam seguimento a recursos."
+    ]
+  },
+  {
+    "key": "mandado_seguranca",
+    "nome": "Mandado de segurança",
+    "quando": "Ato de autoridade (inclusive juiz) viola direito líquido e certo e não há recurso próprio para impugná-lo (ex.: tutela concedida antes da sentença, Súm. 414 TST).",
+    "prazo": "120 dias da ciência do ato (art. 23 da Lei 12.016/2009).",
+    "base_legal": "Art. 5º, LXIX, CF; Lei 12.016/2009; Súm. 414 e OJs da SDI-2 TST.",
+    "enderecamento": "Excelentíssimo Senhor Desembargador Presidente do TRT da __ Região (contra ato de juiz de Vara)",
+    "estrutura": [
+      "Endereçamento ao TRT",
+      "Qualificação do impetrante; indicação da autoridade coatora e do litisconsorte (parte beneficiada)",
+      "Cabimento e tempestividade (120 dias), ausência de recurso próprio",
+      "Fatos e direito líquido e certo, com prova pré-constituída",
+      "Pedido de liminar (art. 7º, III, Lei 12.016/2009)",
+      "Pedidos: notificação da autoridade, ciência ao órgão de representação, citação do litisconsorte, concessão da segurança",
+      "Valor da causa",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": [
+      "Não há dilação probatória: toda prova vai com a inicial."
+    ]
+  },
+  {
+    "key": "consignacao_pagamento",
+    "nome": "Ação de consignação em pagamento",
+    "quando": "O empregador quer pagar verbas rescisórias, mas o empregado se recusa a receber, está em lugar incerto ou faleceu sem herdeiros definidos.",
+    "prazo": "Sem prazo próprio; usada para afastar a mora (ex.: multa do art. 477, §8º).",
+    "base_legal": "Arts. 539 a 549 CPC c/c art. 769 CLT; art. 477 CLT.",
+    "enderecamento": "Excelentíssimo Senhor Juiz da __ Vara do Trabalho de [cidade/UF]",
+    "estrutura": [
+      "Endereçamento à Vara do Trabalho",
+      "Qualificação do consignante (empregador) e do consignado",
+      "Fatos: recusa ou impossibilidade de pagamento",
+      "Fundamentos: arts. 539 e seguintes CPC, art. 477 CLT",
+      "Discriminação e valor das verbas a consignar",
+      "Pedidos: depósito, citação para levantar ou contestar, declaração de extinção da obrigação, afastamento da multa do art. 477, §8º",
+      "Valor da causa",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": [
+      "Em caso de falecimento, consigne em favor dos dependentes habilitados no INSS (Lei 6.858/80)."
+    ]
+  },
+  {
+    "key": "inquerito_falta_grave",
+    "nome": "Inquérito para apuração de falta grave",
+    "quando": "O empregador quer dispensar por justa causa empregado estável que só pode ser dispensado por inquérito (dirigente sindical, Súm. 379 TST; estável decenal).",
+    "prazo": "30 dias a contar da suspensão do empregado (art. 853 CLT; Súm. 403 STF).",
+    "base_legal": "Arts. 853 a 855 CLT; art. 543, §3º, CLT; art. 482 CLT.",
+    "enderecamento": "Excelentíssimo Senhor Juiz da __ Vara do Trabalho de [cidade/UF]",
+    "estrutura": [
+      "Endereçamento à Vara do Trabalho",
+      "Qualificação do requerente (empregador) e do requerido (empregado estável)",
+      "Demonstração da estabilidade e da suspensão, com tempestividade de 30 dias",
+      "Fatos e tipificação da falta grave (art. 482 CLT)",
+      "Pedidos: notificação, procedência para declarar a falta grave e a resolução do contrato",
+      "Rol de até 6 testemunhas (art. 821 CLT)",
+      "Valor da causa",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": [
+      "A petição é escrita (art. 853 CLT) e cada parte pode indicar até 6 testemunhas."
+    ]
+  },
+  {
+    "key": "contrarrazoes",
+    "nome": "Contrarrazões",
+    "quando": "A parte contrária interpôs recurso e você foi intimado para responder, defendendo a manutenção da decisão.",
+    "prazo": "8 dias (art. 900 CLT), salvo embargos de declaração (5 dias).",
+    "base_legal": "Art. 900 CLT.",
+    "enderecamento": "Petição de juntada ao juízo de origem. Contrarrazões ao tribunal competente para o recurso",
+    "estrutura": [
+      "Petição de juntada ao juízo de origem, com pedido de remessa",
+      "Contrarrazões dirigidas ao tribunal",
+      "Preliminar de não conhecimento do recurso (intempestividade, deserção etc.), se houver",
+      "Mérito: fundamentos para manter a decisão",
+      "Pedido de não conhecimento ou de desprovimento",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": [
+      "Se o enunciado diz que o recurso foi interposto sem depósito, a deserção vira preliminar obrigatória."
+    ]
+  },
+  {
+    "key": "acao_rescisoria",
+    "nome": "Ação rescisória",
+    "quando": "Há decisão de mérito transitada em julgado com vício previsto no art. 966 CPC.",
+    "prazo": "2 anos do trânsito em julgado (art. 975 CPC).",
+    "base_legal": "Art. 836 CLT; arts. 966 a 975 CPC; Súm. 83, 99, 100 TST.",
+    "enderecamento": "Excelentíssimo Senhor Desembargador Presidente do TRT da __ Região (decisão de Vara ou TRT)",
+    "estrutura": [
+      "Endereçamento ao tribunal competente",
+      "Qualificação das partes",
+      "Tempestividade (2 anos) e trânsito em julgado",
+      "Depósito prévio de 20% do valor da causa (art. 836 CLT), salvo miserabilidade",
+      "Hipótese de rescindibilidade do art. 966 CPC",
+      "Pedidos: juízo rescindente e, se for o caso, rescisório (novo julgamento); tutela provisória para suspender a execução",
+      "Valor da causa",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": []
+  },
+  {
+    "key": "embargos_terceiro",
+    "nome": "Embargos de terceiro",
+    "quando": "Quem não é parte no processo teve bem penhorado ou ameaçado de constrição na execução trabalhista.",
+    "prazo": "Até 5 dias após a adjudicação, alienação ou arrematação, antes da assinatura da carta (art. 675 CPC).",
+    "base_legal": "Arts. 674 a 681 CPC c/c art. 769 CLT; Súm. 84 STJ.",
+    "enderecamento": "Excelentíssimo Senhor Juiz da __ Vara do Trabalho (juízo que ordenou a constrição)",
+    "estrutura": [
+      "Endereçamento ao juízo da constrição",
+      "Qualificação do embargante (terceiro) e do embargado",
+      "Legitimidade: posse ou propriedade do bem e qualidade de terceiro",
+      "Tempestividade",
+      "Fatos e fundamentos",
+      "Pedido liminar de suspensão das medidas constritivas (art. 678 CPC)",
+      "Pedidos: citação, procedência para desconstituir a penhora, provas",
+      "Valor da causa",
+      "Fechamento: Nestes termos, pede deferimento. Local, data, Advogado, OAB/UF nº"
+    ],
+    "dicas": []
+  }
+]

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titulo %}{{ prova.exame }}{% endblock %}
+{% block conteudo %}
+<p class="discreto"><a href="{{ url_for('qual_peca_lista') }}">Todas as provas</a></p>
+<h1>{{ prova.exame }}{% if prova.ano %} <span class="discreto">({{ prova.ano }})</span>{% endif %}</h1>
+<div class="caso">
+  <article class="enunciado">{{ prova.enunciado }}</article>
+  <section aria-labelledby="perg">
+    <h2 id="perg" style="margin-top:0">Qual peça você redigiria?</h2>
+    <div class="opcoes" id="opcoes">
+      {% for o in opcoes %}
+      <button class="opcao" type="button" data-key="{{ o.key }}">{{ o.nome }}</button>
+      {% endfor %}
+    </div>
+    <div class="veredito" id="veredito" hidden aria-live="polite">
+      <h3 id="v-titulo"></h3>
+      <p id="v-justificativa"></p>
+      <p><strong>Quando usar:</strong> <span id="v-quando"></span></p>
+      <p><strong>Prazo:</strong> <span id="v-prazo"></span></p>
+      <div class="acoes">
+        <a class="botao" id="v-redigir" href="#">Redigir esta peça</a>
+        <a class="botao secundario" href="{{ url_for('qual_peca_sortear') }}">Próxima prova</a>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelectorAll('.opcao').forEach(btn => btn.addEventListener('click', async () => {
+  const botoes = document.querySelectorAll('.opcao');
+  botoes.forEach(b => b.disabled = true);
+  const r = await fetch('{{ url_for("api_qual_peca", prova_id=prova.id) }}', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({peca: btn.dataset.key})
+  });
+  const d = await r.json();
+  botoes.forEach(b => { if (b.dataset.key === d.correta) b.classList.add('certa'); });
+  if (!d.acertou) btn.classList.add('errada');
+  const v = document.getElementById('veredito');
+  v.classList.toggle('errou', !d.acertou);
+  document.getElementById('v-titulo').textContent = d.acertou ? 'Correto: ' + d.correta_nome : 'A peça cabível é ' + d.correta_nome;
+  document.getElementById('v-justificativa').textContent = d.justificativa;
+  document.getElementById('v-quando').textContent = d.quando;
+  document.getElementById('v-prazo').textContent = d.prazo;
+  document.getElementById('v-redigir').href = d.link_estrutura;
+  v.hidden = false;
+}));
+</script>
+{% endblock %}

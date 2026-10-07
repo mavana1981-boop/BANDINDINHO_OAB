@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}OAB Trabalho{% endblock %} · 2ª fase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topo">
+    <a class="marca-app" href="{{ url_for('inicio') }}">OAB Trabalho · 2ª fase</a>
+    {% set ep = request.endpoint or '' %}
+    <nav aria-label="Principal">
+      <a href="{{ url_for('qual_peca_lista') }}" {% if ep.startswith('qual_peca') %}aria-current="page"{% endif %}>Qual é a peça</a>
+      <a href="{{ url_for('estruturas') }}" {% if ep in ['estruturas','estrutura_peca','redigir'] %}aria-current="page"{% endif %}>Estruturas</a>
+      <a href="{{ url_for('importar') }}" {% if ep in ['importar','revisar'] %}aria-current="page"{% endif %}>Provas</a>
+      <a href="{{ url_for('historico') }}" {% if ep in ['historico','tentativa'] %}aria-current="page"{% endif %}>Histórico</a>
+    </nav>
+  </header>
+  {% block cheio %}
+  <main>
+    {% with msgs = get_flashed_messages(with_categories=true) %}
+      {% for cat, m in msgs %}<p class="aviso {{ 'erro' if cat == 'erro' }}" role="status">{{ m }}</p>{% endfor %}
+    {% endwith %}
+    {% block conteudo %}{% endblock %}
+  </main>
+  {% endblock %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

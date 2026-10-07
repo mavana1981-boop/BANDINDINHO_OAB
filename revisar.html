@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block titulo %}{{ prova.exame }}{% endblock %}
+{% block conteudo %}
+<p class="discreto"><a href="{{ url_for('importar') }}">Provas</a></p>
+<h1>{{ prova.exame }}{% if prova.ano %} <span class="discreto">({{ prova.ano }})</span>{% endif %}</h1>
+<p class="lead">Peça cabível: <strong>{{ PECAS_POR_KEY[prova.peca_correta].nome }}</strong>. {{ prova.padrao.justificativa }}</p>
+<div class="ficha">
+  <article class="enunciado">{{ prova.enunciado }}</article>
+  <section>
+    <h2 style="margin-top:0">Distribuição dos pontos</h2>
+    {% if prova.padrao.itens %}
+    <ul class="itens">
+      {% for i in prova.padrao.itens %}<li><span class="pts">{{ '%.2f'|format(i.pontos)|replace('.', ',') }}</span><p class="desc">{{ i.descricao }}</p></li>{% endfor %}
+    </ul>
+    <p class="discreto">Soma: {{ '%.2f'|format(prova.padrao.itens|sum(attribute='pontos'))|replace('.', ',') }} pontos</p>
+    {% else %}
+    <p class="aviso erro">Sem padrão de resposta: a correção por IA fica indisponível para esta prova.</p>
+    {% endif %}
+    <div class="acoes">
+      <a class="botao" href="{{ url_for('qual_peca', prova_id=prova.id) }}">Treinar identificação</a>
+      <a class="botao secundario" href="{{ url_for('redigir', key=prova.peca_correta, prova_id=prova.id) }}">Redigir a peça</a>
+    </div>
+  </section>
+</div>
+{% endblock %}

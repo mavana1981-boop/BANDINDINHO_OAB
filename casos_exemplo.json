@@ -1,0 +1,97 @@
+[
+  {
+    "exame": "Caso de treino 1",
+    "ano": "",
+    "ordem": 0,
+    "origem": "exemplo",
+    "peca_correta": "contestacao",
+    "enunciado": "Marta Lins trabalhou para a empresa Alfa Têxtil Ltda., em Goiânia/GO, de 10/02/2016 a 15/03/2025, como auxiliar de produção, quando foi dispensada sem justa causa. As verbas rescisórias foram pagas em 20/03/2025. Em 02/06/2026, Marta ajuizou reclamação trabalhista, distribuída à 4ª Vara do Trabalho de Goiânia, pedindo: (i) diferenças salariais por equiparação com o colega Paulo, que exerce a mesma função na empresa desde 2009; (ii) adicional de insalubridade em grau médio por exposição a ruído, sem mencionar laudo; (iii) a multa do art. 477, §8º, da CLT, alegando atraso no pagamento das verbas rescisórias. A empresa informa que sempre forneceu protetores auriculares certificados, com fichas de entrega assinadas, e que pagou as verbas dentro do prazo. A audiência está designada para a próxima semana. Como advogado(a) da empresa, apresente a peça processual adequada, com todos os argumentos de defesa cabíveis.",
+    "padrao": {
+      "justificativa": "A reclamada foi notificada de reclamação já ajuizada e a audiência ainda não ocorreu; a peça de defesa é a contestação, apresentada até a audiência (art. 847 CLT).",
+      "itens": [
+        {"descricao": "Endereçamento ao Juiz da 4ª Vara do Trabalho de Goiânia/GO, com indicação do processo", "pontos": 0.1},
+        {"descricao": "Qualificação da reclamada e indicação da reclamante", "pontos": 0.1},
+        {"descricao": "Prescrição quinquenal: pretensões anteriores a 02/06/2021 estão prescritas (art. 7º, XXIX, CF ou art. 11 CLT ou Súm. 308, I, TST)", "pontos": 0.8},
+        {"descricao": "Equiparação indevida: diferença de tempo de serviço para o mesmo empregador superior a 4 anos (art. 461, §1º, CLT)", "pontos": 1.0},
+        {"descricao": "Insalubridade: fornecimento de EPI que neutraliza o agente afasta o adicional (art. 191, II, CLT ou Súm. 80 TST)", "pontos": 0.8},
+        {"descricao": "Insalubridade: necessidade de perícia técnica (art. 195, §2º, CLT)", "pontos": 0.5},
+        {"descricao": "Multa do art. 477, §8º, indevida: pagamento em até 10 dias do término do contrato (art. 477, §6º, CLT)", "pontos": 0.8},
+        {"descricao": "Requerimento de compensação/dedução de valores pagos (art. 767 CLT) ou de produção de provas", "pontos": 0.3},
+        {"descricao": "Pedidos: acolhimento da prescrição e improcedência; honorários sucumbenciais (art. 791-A CLT)", "pontos": 0.5},
+        {"descricao": "Fechamento: local, data, advogado e OAB, sem identificação", "pontos": 0.1}
+      ],
+      "gabarito_texto": "Contestação dirigida à 4ª VT de Goiânia. Prejudicial de prescrição quinquenal. No mérito: afastar a equiparação pelo critério do tempo de serviço superior a 4 anos; afastar a insalubridade pela neutralização via EPI e requerer perícia; afastar a multa do art. 477 pelo pagamento tempestivo. Requerer improcedência e honorários."
+    }
+  },
+  {
+    "exame": "Caso de treino 2",
+    "ano": "",
+    "ordem": 0,
+    "origem": "exemplo",
+    "peca_correta": "recurso_ordinario",
+    "enunciado": "Roberto Cunha foi gerente-geral da filial de Campinas/SP da rede Mercado Bom S.A. de 2019 a 2024, com poderes para admitir e dispensar empregados e recebendo gratificação de função equivalente a 50% do salário do cargo efetivo. Após a dispensa, ajuizou reclamação na 2ª Vara do Trabalho de Campinas. A sentença, publicada ontem, condenou a empresa ao pagamento de horas extras e reflexos, por entender que todo empregado deve ter a jornada controlada, e a indenização por dano moral de R$ 30.000,00, reconhecendo que Roberto sofria cobranças abusivas de metas, embora nenhuma testemunha tenha confirmado esse fato e Roberto não tenha produzido outras provas. Como advogado(a) da empresa, apresente a medida processual cabível para defender os interesses da sua cliente.",
+    "padrao": {
+      "justificativa": "Contra sentença proferida pela Vara do Trabalho cabe recurso ordinário no prazo de 8 dias (art. 895, I, CLT).",
+      "itens": [
+        {"descricao": "Interposição dirigida ao Juiz da 2ª Vara do Trabalho de Campinas/SP", "pontos": 0.1},
+        {"descricao": "Razões dirigidas ao TRT da 15ª Região", "pontos": 0.1},
+        {"descricao": "Tempestividade: prazo de 8 dias (art. 895, I, CLT)", "pontos": 0.2},
+        {"descricao": "Preparo: comprovação de custas e depósito recursal (art. 789, §1º e art. 899, §1º, CLT)", "pontos": 0.4},
+        {"descricao": "Pedido de intimação do recorrido para contrarrazões e remessa ao tribunal", "pontos": 0.1},
+        {"descricao": "Horas extras indevidas: gerente com poderes de gestão e gratificação não inferior a 40% está excluído do controle de jornada (art. 62, II e parágrafo único, CLT)", "pontos": 1.6},
+        {"descricao": "Dano moral: ônus da prova do fato constitutivo é do reclamante (art. 818, I, CLT ou art. 373, I, CPC), que não se desincumbiu", "pontos": 1.4},
+        {"descricao": "Subsidiariamente, redução do valor da indenização (art. 223-G CLT)", "pontos": 0.4},
+        {"descricao": "Pedido de conhecimento e provimento para reformar a sentença", "pontos": 0.6},
+        {"descricao": "Fechamento: local, data, advogado e OAB, sem identificação", "pontos": 0.1}
+      ],
+      "gabarito_texto": "Recurso ordinário com interposição à 2ª VT de Campinas e razões ao TRT-15. Pressupostos: tempestividade e preparo. Mérito: exclusão das horas extras pelo art. 62, II, CLT; exclusão do dano moral por ausência de prova (art. 818, I); subsidiariamente, redução com base no art. 223-G. Pedido de provimento."
+    }
+  },
+  {
+    "exame": "Caso de treino 3",
+    "ano": "",
+    "ordem": 0,
+    "origem": "exemplo",
+    "peca_correta": "reclamacao_trabalhista",
+    "enunciado": "Juliana Prado foi admitida em 05/01/2025 pela Loja Estrela Ltda., em Recife/PE, como vendedora, com salário de R$ 2.400,00 e jornada de 8h às 17h, de segunda a sexta, com intervalo de apenas 30 minutos para almoço por ordem da gerência. Em 10/08/2026 foi dispensada sem justa causa, com aviso-prévio indenizado. Dez dias depois, descobriu estar grávida de 9 semanas; o exame indica concepção anterior à dispensa. A empresa, comunicada, recusou-se a readmiti-la, afirmando que desconhecia a gravidez. Juliana está desempregada e não tem condições de arcar com custas. Como advogado(a) de Juliana, apresente a medida judicial cabível para tutelar todos os seus direitos.",
+    "padrao": {
+      "justificativa": "Não há processo em curso e a cliente é a empregada: a medida é a reclamação trabalhista (art. 840 CLT), com pedido de tutela de urgência de reintegração.",
+      "itens": [
+        {"descricao": "Endereçamento à Vara do Trabalho de Recife/PE", "pontos": 0.1},
+        {"descricao": "Qualificação das partes e indicação do rito", "pontos": 0.1},
+        {"descricao": "Estabilidade da gestante desde a confirmação da gravidez até 5 meses após o parto (art. 10, II, b, ADCT)", "pontos": 0.8},
+        {"descricao": "Desconhecimento do empregador não afasta a estabilidade (Súm. 244, I, TST) e a concepção no aviso-prévio também garante (art. 391-A CLT)", "pontos": 0.7},
+        {"descricao": "Tutela de urgência para reintegração (art. 300 CPC c/c art. 769 CLT) e, sucessivamente, indenização substitutiva (Súm. 244, II, TST)", "pontos": 0.9},
+        {"descricao": "Intervalo intrajornada suprimido: pagamento de 30 minutos com acréscimo de 50%, natureza indenizatória (art. 71, §4º, CLT)", "pontos": 0.9},
+        {"descricao": "Pedidos certos, determinados e com valor (art. 840, §1º, CLT)", "pontos": 0.4},
+        {"descricao": "Gratuidade de justiça (art. 790, §§3º e 4º, CLT)", "pontos": 0.3},
+        {"descricao": "Requerimentos: notificação da reclamada, provas, honorários sucumbenciais (art. 791-A CLT), valor da causa", "pontos": 0.6},
+        {"descricao": "Fechamento: local, data, advogado e OAB, sem identificação", "pontos": 0.2}
+      ],
+      "gabarito_texto": "Reclamação trabalhista com tutela de urgência de reintegração da gestante (art. 10, II, b, ADCT; Súm. 244, I; art. 391-A CLT), pedido sucessivo de indenização substitutiva, pagamento do intervalo suprimido (art. 71, §4º), gratuidade, honorários, pedidos líquidos e valor da causa."
+    }
+  },
+  {
+    "exame": "Caso de treino 4",
+    "ano": "",
+    "ordem": 0,
+    "origem": "exemplo",
+    "peca_correta": "agravo_peticao",
+    "enunciado": "Na execução movida por Carlos Dias contra a Construtora Delta Ltda., em trâmite na 1ª Vara do Trabalho de Belo Horizonte/MG, a empresa não tinha bens e foi instaurado incidente de desconsideração da personalidade jurídica. Foi incluído no polo passivo Fernando Alves, que deixou o quadro societário em 2019, com alteração contratual averbada na Junta Comercial em março daquele ano; a reclamação foi ajuizada em 2023. Foi penhorado o único imóvel de Fernando, onde ele mora com a família. Fernando apresentou embargos à execução após a penhora, alegando ilegitimidade e impenhorabilidade, mas o juiz os rejeitou integralmente em decisão publicada há três dias. Como advogado(a) de Fernando, apresente a peça cabível.",
+    "padrao": {
+      "justificativa": "Decisão proferida na execução (julgamento dos embargos à execução) é impugnada por agravo de petição, em 8 dias (art. 897, a, CLT).",
+      "itens": [
+        {"descricao": "Interposição ao Juiz da 1ª Vara do Trabalho de Belo Horizonte/MG", "pontos": 0.1},
+        {"descricao": "Razões dirigidas ao TRT da 3ª Região", "pontos": 0.1},
+        {"descricao": "Tempestividade: prazo de 8 dias (art. 897, a, CLT)", "pontos": 0.2},
+        {"descricao": "Delimitação justificada das matérias e valores impugnados (art. 897, §1º, CLT)", "pontos": 0.6},
+        {"descricao": "Garantia do juízo pela penhora (dispensa de novo depósito)", "pontos": 0.2},
+        {"descricao": "Ilegitimidade: sócio retirante só responde por ações ajuizadas até 2 anos após a averbação da saída (art. 10-A CLT)", "pontos": 1.6},
+        {"descricao": "Impenhorabilidade do bem de família (art. 1º da Lei 8.009/1990)", "pontos": 1.4},
+        {"descricao": "Pedido de conhecimento e provimento para excluir o agravante do polo e desconstituir a penhora", "pontos": 0.7},
+        {"descricao": "Fechamento: local, data, advogado e OAB, sem identificação", "pontos": 0.1}
+      ],
+      "gabarito_texto": "Agravo de petição com interposição à 1ª VT de BH e razões ao TRT-3, delimitando matérias e valores. Mérito: ilegitimidade do sócio retirante (art. 10-A CLT, saída averbada há mais de 2 anos do ajuizamento) e impenhorabilidade do bem de família (Lei 8.009/90). Pedido de provimento."
+    }
+  }
+]

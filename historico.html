@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block titulo %}Histórico{% endblock %}
+{% block conteudo %}
+<h1>Histórico</h1>
+{% if tentativas %}
+<div class="rolagem">
+<table class="tabela-provas">
+  <thead><tr><th>Quando</th><th>Prova</th><th>Treino</th><th>Resultado</th></tr></thead>
+  <tbody>
+  {% for t in tentativas %}
+  <tr>
+    <td>{{ t.created_at }}</td>
+    <td>{{ t.exame }}</td>
+    {% if t.modo == 'peca' %}
+      <td>Qual é a peça</td>
+      <td>{% if t.acertou %}<span class="selo ok">Acertou</span>{% else %}<span class="selo falhou">Escolheu {{ PECAS_POR_KEY.get(t.peca_escolhida, {}).get('nome', '?') }}</span>{% endif %}</td>
+    {% else %}
+      <td>Redação · {{ PECAS_POR_KEY[t.peca_correta].nome }}</td>
+      <td><a href="{{ url_for('tentativa', tid=t.id) }}">{{ '%.2f'|format(t.nota or 0)|replace('.', ',') }} de 5,00</a></td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="aviso">Nenhum treino ainda. Comece por <a href="{{ url_for('qual_peca_sortear') }}">uma prova sorteada</a>.</p>
+{% endif %}
+{% endblock %}

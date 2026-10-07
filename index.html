@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block titulo %}Início{% endblock %}
+{% block cheio %}
+<div class="portas">
+  <a class="porta porta-peca" href="{{ url_for('qual_peca_lista') }}">
+    <h2>Qual é a peça?</h2>
+    <p>Leia o enunciado de cada prova e escolha a peça cabível entre as alternativas. Treino rápido de identificação.</p>
+    <span class="detalhe">{{ oficiais }} de {{ meta }} provas oficiais importadas · {{ total }} casos no total</span>
+  </a>
+  <a class="porta porta-estrutura" href="{{ url_for('estruturas') }}">
+    <h2>Estruturas</h2>
+    <p>Escolha a peça pelo nome, resolva o caso na folha de resposta e receba a correção item a item pelo padrão da banca.</p>
+    <span class="detalhe">{{ n_pecas }} peças com esqueleto-modelo · correção por IA</span>
+  </a>
+</div>
+{% if oficiais < meta %}
+<p class="rodape-inicio">Faltam {{ meta - oficiais }} provas oficiais. <a href="{{ url_for('importar') }}">Importe os PDFs da FGV</a> para completar as últimas {{ meta }}.</p>
+{% endif %}
+{% endblock %}

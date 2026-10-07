@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block titulo %}Provas{% endblock %}
+{% block conteudo %}
+<h1>Provas</h1>
+<p class="lead">Importe as provas oficiais da FGV (área Direito do Trabalho). Envie o caderno da prova prático-profissional e o padrão de resposta: a IA extrai o enunciado da peça, a peça cabível e a distribuição dos pontos.</p>
+<div class="progresso">
+  <span>{{ oficiais }} de {{ meta }} provas oficiais</span>
+  <div class="trilha" aria-hidden="true"><span style="width: {{ [100, (oficiais / meta * 100)|round]|min }}%"></span></div>
+</div>
+<div class="dupla">
+  <form class="bloco" method="post" enctype="multipart/form-data" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Importando…'">
+    <h2 style="margin-top:0">Importar PDFs da FGV</h2>
+    <input type="hidden" name="tipo" value="pdf">
+    <label for="pdfs">Caderno da prova e padrão de resposta (um ou dois PDFs)</label>
+    <input id="pdfs" type="file" name="pdfs" accept="application/pdf" multiple required>
+    <p class="discreto">Os arquivos ficam no site da FGV (oab.fgv.br), na página de cada exame. Escolha a prova de Direito do Trabalho.</p>
+    <button class="botao" type="submit">Importar prova</button>
+  </form>
+  <form class="bloco" method="post" enctype="multipart/form-data">
+    <h2 style="margin-top:0">Importar JSON</h2>
+    <input type="hidden" name="tipo" value="json">
+    <label for="arquivo_json">Arquivo .json com uma ou várias provas</label>
+    <input id="arquivo_json" type="file" name="arquivo_json" accept=".json,application/json" required>
+    <p class="discreto">Mesmo formato de <code>data/casos_exemplo.json</code>. Útil para cadastrar várias provas de uma vez.</p>
+    <button class="botao secundario" type="submit">Importar JSON</button>
+  </form>
+</div>
+<h2>Cadastradas</h2>
+<div class="rolagem">
+<table class="tabela-provas">
+  <thead><tr><th>Prova</th><th>Peça</th><th>Origem</th><th></th></tr></thead>
+  <tbody>
+  {% for p in provas %}
+  <tr>
+    <td><a href="{{ url_for('revisar', prova_id=p.id) }}">{{ p.exame }}</a></td>
+    <td>{{ PECAS_POR_KEY[p.peca_correta].nome }}</td>
+    <td>{{ 'Oficial FGV' if p.origem == 'oficial' else 'Caso de treino' }}</td>
+    <td>
+      <form method="post" action="{{ url_for('excluir', prova_id=p.id) }}" onsubmit="return confirm('Excluir {{ p.exame }} e suas tentativas?')">
+        <button class="botao perigo" type="submit">Excluir</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

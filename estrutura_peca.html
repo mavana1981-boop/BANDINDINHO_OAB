@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block titulo %}{{ peca.nome }}{% endblock %}
+{% block conteudo %}
+<p class="discreto"><a href="{{ url_for('estruturas') }}">Estruturas</a></p>
+<h1>{{ peca.nome }}</h1>
+<p class="lead">{{ peca.quando }}</p>
+<div class="ficha">
+  <section>
+    <h2 style="margin-top:0">Esqueleto-modelo</h2>
+    <ol class="esqueleto">{% for e in peca.estrutura %}<li>{{ e }}</li>{% endfor %}</ol>
+  </section>
+  <section>
+    <dl>
+      <dt>Prazo</dt><dd>{{ peca.prazo }}</dd>
+      <dt>Base legal</dt><dd>{{ peca.base_legal }}</dd>
+      <dt>Endereçamento</dt><dd>{{ peca.enderecamento }}</dd>
+      {% if peca.dicas %}<dt>Atenção</dt>{% for d in peca.dicas %}<dd>{{ d }}</dd>{% endfor %}{% endif %}
+    </dl>
+  </section>
+</div>
+<h2>Casos para resolver</h2>
+{% if casos %}
+<div class="rolagem">
+<table class="tabela-provas">
+  <thead><tr><th>Prova</th><th>Começo do enunciado</th><th></th></tr></thead>
+  <tbody>
+  {% for c in casos %}
+  <tr>
+    <td>{{ c.exame }}{% if c.ano %}<br><span class="discreto">{{ c.ano }}</span>{% endif %}</td>
+    <td class="resumo">{{ c.enunciado[:160] }}…</td>
+    <td><a class="botao secundario" href="{{ url_for('redigir', key=peca.key, prova_id=c.id) }}">Redigir</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="aviso">Nenhuma prova importada cobrou esta peça ainda. <a href="{{ url_for('importar') }}">Importe provas</a> para liberar casos.</p>
+{% endif %}
+{% endblock %}

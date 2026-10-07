@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block titulo %}{{ peca.nome }} · {{ prova.exame }}{% endblock %}
+{% block conteudo %}
+<p class="discreto"><a href="{{ url_for('estrutura_peca', key=peca.key) }}">{{ peca.nome }}</a></p>
+<h1>{{ prova.exame }}</h1>
+<div class="mesa">
+  <article class="enunciado" tabindex="0" aria-label="Enunciado">{{ prova.enunciado }}</article>
+  <section>
+    <div class="folha-wrap">
+      <div class="folha-topo">
+        <label for="folha"><strong>Folha de resposta</strong> · {{ peca.nome }}</label>
+        <span class="contador" id="contador">0 de 150 linhas</span>
+      </div>
+      <textarea class="folha" id="folha" spellcheck="true" placeholder="Comece pelo endereçamento…"></textarea>
+      <details class="dica-esqueleto">
+        <summary>Mostrar o esqueleto desta peça</summary>
+        <ol>{% for e in peca.estrutura %}<li>{{ e }}</li>{% endfor %}</ol>
+      </details>
+    </div>
+    <div class="acoes">
+      <button class="botao" id="corrigir" type="button">Corrigir com IA</button>
+      <span class="discreto" id="salvo"></span>
+    </div>
+  </section>
+</div>
+<div id="resultado" aria-live="polite"></div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='resultado.js') }}"></script>
+<script>
+const folha = document.getElementById('folha');
+const contador = document.getElementById('contador');
+const chave = 'rascunho-{{ prova.id }}';
+const CARACTERES_POR_LINHA = 75; // aproximação de uma linha manuscrita da folha da FGV
+
+function linhas(texto) {
+  return texto.split('\n').reduce((n, l) => n + Math.max(1, Math.ceil(l.length / CARACTERES_POR_LINHA)), 0);
+}
+function atualizar() {
+  const n = folha.value ? linhas(folha.value) : 0;
+  contador.textContent = `≈ ${n} de 150 linhas`;
+  contador.classList.toggle('excedeu', n > 150);
+}
+try { folha.value = localStorage.getItem(chave) || ''; } catch (e) {}
+atualizar();
+folha.addEventListener('input', () => {
+  atualizar();
+  try { localStorage.setItem(chave, folha.value); document.getElementById('salvo').textContent = 'Rascunho salvo neste navegador'; } catch (e) {}
+});
+
+document.getElementById('corrigir').addEventListener('click', async (ev) => {
+  const btn = ev.currentTarget, alvo = document.getElementById('resultado');
+  btn.disabled = true; btn.textContent = 'Corrigindo…';
+  alvo.innerHTML = '<p class="carregando resultado">A banca está lendo sua peça. Isso leva até um minuto.</p>';
+  try {
+    const r = await fetch('{{ url_for("api_corrigir", prova_id=prova.id) }}', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({resposta: folha.value})
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Falha na correção.');
+    renderResultado(alvo, d);
+    alvo.scrollIntoView({behavior: 'smooth', block: 'start'});
+  } catch (e) {
+    alvo.innerHTML = '';
+    const p = document.createElement('p'); p.className = 'aviso erro'; p.textContent = e.message; alvo.appendChild(p);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Corrigir com IA';
+  }
+});
+</script>
+{% endblock %}

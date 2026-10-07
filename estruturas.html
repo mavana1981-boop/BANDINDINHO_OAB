@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block titulo %}Estruturas{% endblock %}
+{% block conteudo %}
+<h1>Estruturas</h1>
+<p class="lead">As peças trabalhistas cobradas na 2ª fase, por nome. Abra uma peça para ver o esqueleto-modelo e resolver os casos em que ela foi a resposta.</p>
+<ul class="indice-pecas">
+  {% for p in pecas %}
+  <li><a href="{{ url_for('estrutura_peca', key=p.key) }}">
+    <span class="nome-peca">{{ p.nome }}</span>
+    <span class="qtd">{% set n = contagem.get(p.key, 0) %}{{ n }} {{ 'caso' if n == 1 else 'casos' }}</span>
+  </a></li>
+  {% endfor %}
+</ul>
+{% endblock %}

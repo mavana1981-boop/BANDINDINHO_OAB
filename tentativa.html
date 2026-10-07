@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block titulo %}Correção · {{ prova.exame }}{% endblock %}
+{% block conteudo %}
+<p class="discreto"><a href="{{ url_for('historico') }}">Histórico</a></p>
+<h1>{{ prova.exame }} <span class="discreto">· {{ t.created_at }}</span></h1>
+<div class="ficha">
+  <article class="enunciado">{{ prova.enunciado }}</article>
+  <article class="enunciado">{{ t.resposta }}</article>
+</div>
+<div id="resultado"></div>
+<a class="botao secundario" href="{{ url_for('redigir', key=prova.peca_correta, prova_id=prova.id) }}">Refazer a peça</a>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='resultado.js') }}"></script>
+<script>renderResultado(document.getElementById('resultado'), {{ t.resultado|tojson }});</script>
+{% endblock %}

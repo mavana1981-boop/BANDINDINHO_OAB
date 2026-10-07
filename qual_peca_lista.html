@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block titulo %}Qual é a peça{% endblock %}
+{% block conteudo %}
+<h1>Qual é a peça?</h1>
+<p class="lead">Cada prova traz o enunciado da peça prático-profissional. Você escolhe a medida cabível e vê a justificativa do padrão de resposta.</p>
+<div class="progresso">
+  <span>{{ oficiais }} de {{ meta }} provas oficiais</span>
+  <div class="trilha" aria-hidden="true"><span style="width: {{ [100, (oficiais / meta * 100)|round]|min }}%"></span></div>
+  <a class="botao" href="{{ url_for('qual_peca_sortear') }}">Sortear uma prova</a>
+</div>
+{% if provas %}
+<div class="rolagem">
+<table class="tabela-provas">
+  <thead><tr><th>Prova</th><th>Começo do enunciado</th><th>Seu resultado</th></tr></thead>
+  <tbody>
+  {% for p in provas %}
+    <tr>
+      <td><a href="{{ url_for('qual_peca', prova_id=p.id) }}">{{ p.exame }}</a>{% if p.ano %}<br><span class="discreto">{{ p.ano }}</span>{% endif %}</td>
+      <td class="resumo">{{ p.enunciado[:150] }}…</td>
+      <td>
+        {% if p.id in status %}
+          {% if status[p.id] %}<span class="selo ok">Acertou</span>{% else %}<span class="selo falhou">Errou na última</span>{% endif %}
+        {% else %}<span class="discreto">Não respondida</span>{% endif %}
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="aviso">Nenhuma prova cadastrada. <a href="{{ url_for('importar') }}">Importe a primeira</a>.</p>
+{% endif %}
+{% endblock %}
