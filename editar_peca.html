@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block titulo %}Editar · {{ peca.nome }}{% endblock %}
+{% block conteudo %}
+<p class="discreto"><a href="{{ url_for('estrutura_peca', key=peca.key) }}">{{ peca.nome }}</a></p>
+<h1>Editar estrutura</h1>
+<p class="lead">As alterações valem para a ficha da peça, para a folha de resposta e para as alternativas do Qual é a peça. A correção por IA continua usando o padrão de resposta de cada prova.</p>
+<form class="bloco formulario" method="post">
+  <label for="nome">Nome da peça</label>
+  <input id="nome" name="nome" type="text" value="{{ peca.nome }}" required>
+
+  <label for="estrutura">Estrutura, um passo por linha</label>
+  <textarea id="estrutura" name="estrutura" rows="12" required>{{ peca.estrutura|join('\n') }}</textarea>
+
+  <label for="quando">Quando usar</label>
+  <textarea id="quando" name="quando" rows="3">{{ peca.quando }}</textarea>
+
+  <label for="prazo">Prazo</label>
+  <input id="prazo" name="prazo" type="text" value="{{ peca.prazo }}">
+
+  <label for="base_legal">Base legal</label>
+  <input id="base_legal" name="base_legal" type="text" value="{{ peca.base_legal }}">
+
+  <label for="enderecamento">Endereçamento</label>
+  <input id="enderecamento" name="enderecamento" type="text" value="{{ peca.enderecamento }}">
+
+  <label for="dicas">Pontos de atenção, um por linha</label>
+  <textarea id="dicas" name="dicas" rows="4">{{ peca.dicas|join('\n') }}</textarea>
+
+  <div class="acoes">
+    <button class="botao" type="submit">Salvar estrutura</button>
+    <a class="botao secundario" href="{{ url_for('estrutura_peca', key=peca.key) }}">Cancelar</a>
+  </div>
+</form>
+{% if peca.editada %}
+<form method="post" action="{{ url_for('restaurar_peca', key=peca.key) }}" onsubmit="return confirm('Descartar suas alterações e voltar à estrutura original?')" style="margin-top:1rem">
+  <button class="botao perigo" type="submit">Restaurar estrutura original</button>
+</form>
+{% endif %}
+{% endblock %}
