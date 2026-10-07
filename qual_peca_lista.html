@@ -2,26 +2,32 @@
 {% block titulo %}Qual é a peça{% endblock %}
 {% block conteudo %}
 <h1>Qual é a peça?</h1>
-<p class="lead">Cada prova traz o enunciado da peça prático-profissional. Você escolhe a medida cabível e vê a justificativa do padrão de resposta.</p>
+<p class="lead">Cada prova traz o enunciado da peça prático-profissional. Você escolhe a medida cabível e vê a justificativa do padrão de resposta. Provas acertadas saem do sorteio.</p>
+
+{% if concluiu %}
+<p class="aviso">Você acertou todas as {{ provas|length }} provas cadastradas nesta sessão.
+  {% if oficiais < meta %}Importe mais provas em <a href="{{ url_for('importar') }}">Provas</a> ou <a href="{{ url_for('sair') }}">saia</a> para recomeçar do zero.{% else %}<a href="{{ url_for('sair') }}">Saia</a> para recomeçar do zero.{% endif %}</p>
+{% endif %}
+
 <div class="progresso">
-  <span>{{ oficiais }} de {{ meta }} provas oficiais</span>
-  <div class="trilha" aria-hidden="true"><span style="width: {{ [100, (oficiais / meta * 100)|round]|min }}%"></span></div>
-  <a class="botao" href="{{ url_for('qual_peca_sortear') }}">Sortear uma prova</a>
+  <span>{{ n_acertos }} de {{ provas|length }} acertadas · {{ erros }} {{ 'erro' if erros == 1 else 'erros' }} em {{ respondidas }} {{ 'resposta' if respondidas == 1 else 'respostas' }}</span>
+  <div class="trilha" aria-hidden="true"><span style="width: {{ ((n_acertos / provas|length * 100)|round) if provas else 0 }}%"></span></div>
+  {% if not concluiu %}<a class="botao" href="{{ url_for('qual_peca_sortear') }}">Sortear uma prova</a>{% endif %}
 </div>
+{% if oficiais < meta %}
+<p class="discreto">{{ oficiais }} de {{ meta }} provas oficiais importadas. Enquanto só houver os casos de treino, o sorteio gira entre eles; <a href="{{ url_for('importar') }}">importe as provas da FGV</a> para ampliar.</p>
+{% endif %}
+
 {% if provas %}
 <div class="rolagem">
 <table class="tabela-provas">
-  <thead><tr><th>Prova</th><th>Começo do enunciado</th><th>Seu resultado</th></tr></thead>
+  <thead><tr><th>Prova</th><th>Começo do enunciado</th><th>Nesta sessão</th></tr></thead>
   <tbody>
   {% for p in provas %}
     <tr>
-      <td><a href="{{ url_for('qual_peca', prova_id=p.id) }}">{{ p.exame }}</a>{% if p.ano %}<br><span class="discreto">{{ p.ano }}</span>{% endif %}</td>
+      <td>{% if p.id in acertos %}{{ p.exame }}{% else %}<a href="{{ url_for('qual_peca', prova_id=p.id) }}">{{ p.exame }}</a>{% endif %}{% if p.ano %}<br><span class="discreto">{{ p.ano }}</span>{% endif %}</td>
       <td class="resumo">{{ p.enunciado[:150] }}…</td>
-      <td>
-        {% if p.id in status %}
-          {% if status[p.id] %}<span class="selo ok">Acertou</span>{% else %}<span class="selo falhou">Errou na última</span>{% endif %}
-        {% else %}<span class="discreto">Não respondida</span>{% endif %}
-      </td>
+      <td>{% if p.id in acertos %}<span class="selo ok">Acertou</span>{% else %}<span class="discreto">Pendente</span>{% endif %}</td>
     </tr>
   {% endfor %}
   </tbody>
