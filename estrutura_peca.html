@@ -6,6 +6,7 @@
 <p class="lead">{{ peca.quando }}</p>
 <div class="acoes" style="margin:-.5rem 0 1.5rem">
   <a class="botao secundario" href="{{ url_for('editar_peca', key=peca.key) }}">Editar estrutura</a>
+  <a class="botao secundario" href="{{ url_for('imprimir_peca', key=peca.key) }}" target="_blank" rel="noopener">Imprimir / PDF</a>
   {% if peca.editada %}<span class="discreto">Estrutura editada por você</span>{% endif %}
 </div>
 <div class="ficha">
