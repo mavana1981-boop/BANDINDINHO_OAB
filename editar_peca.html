@@ -4,12 +4,40 @@
 <p class="discreto"><a href="{{ url_for('estrutura_peca', key=peca.key) }}">{{ peca.nome }}</a></p>
 <h1>Editar estrutura</h1>
 <p class="lead">As alterações valem para a ficha da peça, para a folha de resposta e para as alternativas do Qual é a peça. A correção por IA continua usando o padrão de resposta de cada prova.</p>
-<form class="bloco formulario" method="post">
+<form class="bloco formulario" method="post" id="form-peca">
   <label for="nome">Nome da peça</label>
   <input id="nome" name="nome" type="text" value="{{ peca.nome }}" required>
 
-  <label for="estrutura">Estrutura, um passo por linha</label>
-  <textarea id="estrutura" name="estrutura" rows="12" required>{{ peca.estrutura|join('\n') }}</textarea>
+  <span class="rotulo" id="rot-estrutura">Estrutura</span>
+  <p class="discreto" style="margin:.2rem 0 .6rem">Selecione um trecho e use a barra para formatar. Enter cria um novo passo; Shift+Enter quebra a linha. A bolinha de cor à direita pinta o passo inteiro; "Sem nº" tira a linha da numeração, para usá-la como conector entre itens.</p>
+  <div class="editor-barra" role="toolbar" aria-label="Formatação do texto">
+    <button type="button" class="ferr" data-cmd="bold" title="Negrito (Ctrl+B)" aria-label="Negrito"><b>N</b></button>
+    <button type="button" class="ferr" data-cmd="italic" title="Itálico (Ctrl+I)" aria-label="Itálico"><i>I</i></button>
+    <button type="button" class="ferr" data-cmd="underline" title="Sublinhado (Ctrl+U)" aria-label="Sublinhado"><u>S</u></button>
+    <button type="button" class="ferr" data-cmd="strikeThrough" title="Tachado" aria-label="Tachado"><s>T</s></button>
+    <span class="sep" aria-hidden="true"></span>
+    {% for nome, cor in [('Preto','#1D2B27'),('Vermelho','#B4432F'),('Azul','#2B5C8A'),('Verde','#2E7A4C'),('Laranja','#C26A12'),('Roxo','#6A4C93')] %}
+    <button type="button" class="amostra" data-cmd="foreColor" data-valor="{{ cor }}" style="--a: {{ cor }}" title="Texto {{ nome|lower }}" aria-label="Cor do texto: {{ nome|lower }}"></button>
+    {% endfor %}
+    <label class="cor-livre" title="Outra cor do texto"><span class="sr">Outra cor do texto</span><input type="color" id="cor-livre" value="#1D2B27"></label>
+    <button type="button" class="ferr marca" data-cmd="hiliteColor" data-valor="#F2D25C" title="Marca-texto">Marca-texto</button>
+    <span class="sep" aria-hidden="true"></span>
+    <label class="sr" for="tamanho">Tamanho</label>
+    <select id="tamanho" title="Tamanho da letra">
+      <option value="">Tamanho</option><option value="2">Pequeno</option><option value="3">Normal</option><option value="4">Grande</option><option value="5">Maior</option>
+    </select>
+    <label class="sr" for="fonte">Fonte</label>
+    <select id="fonte" title="Fonte">
+      <option value="">Fonte</option>
+      <option value="Source Serif 4, Georgia, serif">Serifada</option>
+      <option value="IBM Plex Sans, Arial, sans-serif">Sem serifa</option>
+      <option value="Courier New, monospace">Monoespaçada</option>
+    </select>
+    <button type="button" class="ferr" data-cmd="removeFormat" title="Remover formatação do trecho">Limpar</button>
+  </div>
+  <ol class="passos-editor" id="passos" aria-labelledby="rot-estrutura"></ol>
+  <button type="button" class="botao secundario" id="add-passo">Adicionar passo</button>
+  <input type="hidden" name="estrutura_json" id="estrutura_json">
 
   <label for="quando">Quando usar</label>
   <textarea id="quando" name="quando" rows="3">{{ peca.quando }}</textarea>
@@ -36,4 +64,114 @@
   <button class="botao perigo" type="submit">Restaurar estrutura original</button>
 </form>
 {% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+const CORES_PASSO = [['', 'Sem cor'], ['#2E7A4C', 'Verde'], ['#2B5C8A', 'Azul'], ['#8A2B3D', 'Vinho'],
+                     ['#B07A12', 'Âmbar'], ['#6A4C93', 'Roxo'], ['#5F6B66', 'Cinza']];
+const lista = document.getElementById('passos');
+let faixa = null;  // última seleção dentro de um passo
+
+function novoPasso(html = '', cor = '', depoisDe = null, conector = false) {
+  const li = document.createElement('li');
+  li.className = 'passo' + (conector ? ' conector' : '');
+  li.dataset.cor = cor;
+  if (cor) li.style.setProperty('--cor', cor);
+
+  const texto = document.createElement('div');
+  texto.className = 'texto';
+  texto.contentEditable = 'true';
+  texto.setAttribute('role', 'textbox');
+  texto.setAttribute('aria-label', 'Texto do passo');
+  texto.innerHTML = html;
+
+  const acoes = document.createElement('div');
+  acoes.className = 'passo-acoes';
+  const cores = document.createElement('div');
+  cores.className = 'cores-passo';
+  CORES_PASSO.forEach(([c, nome]) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'bolinha' + (c ? '' : ' sem'); b.title = 'Passo: ' + nome.toLowerCase();
+    b.setAttribute('aria-label', 'Cor do passo: ' + nome.toLowerCase());
+    if (c) b.style.background = c;
+    b.setAttribute('aria-pressed', String(c === cor));
+    b.addEventListener('click', () => {
+      li.dataset.cor = c;
+      c ? li.style.setProperty('--cor', c) : li.style.removeProperty('--cor');
+      cores.querySelectorAll('.bolinha').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    });
+    cores.appendChild(b);
+  });
+  const botao = (rotulo, titulo, fn) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'mini'; b.textContent = rotulo; b.title = titulo; b.setAttribute('aria-label', titulo);
+    b.addEventListener('click', fn); return b;
+  };
+  const numerar = botao('Sem nº', 'Não numerar esta linha (conector entre itens)', () => {
+    const ativo = li.classList.toggle('conector');
+    numerar.setAttribute('aria-pressed', String(ativo));
+  });
+  numerar.classList.add('alterna');
+  numerar.setAttribute('aria-pressed', String(conector));
+  acoes.append(cores, numerar,
+    botao('↑', 'Subir passo', () => li.previousElementSibling && lista.insertBefore(li, li.previousElementSibling)),
+    botao('↓', 'Descer passo', () => li.nextElementSibling && lista.insertBefore(li.nextElementSibling, li)),
+    botao('×', 'Excluir passo', () => { if (lista.children.length > 1 || confirm('Excluir o único passo?')) li.remove(); }));
+
+  texto.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      novoPasso('', '', li).querySelector('.texto').focus();
+    } else if (e.key === 'Enter' && e.shiftKey) {
+      e.preventDefault();
+      document.execCommand('insertLineBreak');
+    }
+  });
+  texto.addEventListener('paste', (e) => {  // cola só o texto, sem a formatação de outros sites
+    e.preventDefault();
+    document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain'));
+  });
+
+  li.append(texto, acoes);
+  depoisDe ? depoisDe.after(li) : lista.appendChild(li);
+  return li;
+}
+
+({{ peca.estrutura|tojson }}).forEach(p => novoPasso(p.html, p.cor, null, p.conector));
+if (!lista.children.length) novoPasso();
+document.getElementById('add-passo').addEventListener('click', () => novoPasso().querySelector('.texto').focus());
+
+// guarda a seleção para os botões e menus da barra
+document.addEventListener('selectionchange', () => {
+  const s = window.getSelection();
+  if (s.rangeCount && s.anchorNode && s.anchorNode.parentElement && s.anchorNode.parentElement.closest('.texto')) {
+    faixa = s.getRangeAt(0).cloneRange();
+  }
+});
+function aplicar(cmd, valor) {
+  if (!faixa) { alert('Selecione primeiro o trecho que quer formatar.'); return; }
+  const no = faixa.startContainer;
+  const editor = (no.nodeType === 1 ? no : no.parentElement).closest('.texto');
+  if (editor) editor.focus({preventScroll: true});  // menus tiram o foco; o comando só age no texto focado
+  const s = window.getSelection();
+  s.removeAllRanges(); s.addRange(faixa);
+  document.execCommand('styleWithCSS', false, true);
+  document.execCommand(cmd, false, valor || null);
+}
+document.querySelectorAll('.editor-barra [data-cmd]').forEach(b => {
+  b.addEventListener('mousedown', e => e.preventDefault());  // não tira o foco do texto
+  b.addEventListener('click', () => aplicar(b.dataset.cmd, b.dataset.valor));
+});
+document.getElementById('cor-livre').addEventListener('input', e => aplicar('foreColor', e.target.value));
+document.getElementById('tamanho').addEventListener('change', e => { if (e.target.value) aplicar('fontSize', e.target.value); e.target.value = ''; });
+document.getElementById('fonte').addEventListener('change', e => { if (e.target.value) aplicar('fontName', e.target.value); e.target.value = ''; });
+
+document.getElementById('form-peca').addEventListener('submit', (e) => {
+  const passos = [...lista.querySelectorAll('.passo')]
+    .map(li => ({html: li.querySelector('.texto').innerHTML, cor: li.dataset.cor || '', conector: li.classList.contains('conector')}))
+    .filter(p => p.html.replace(/<[^>]+>|&nbsp;/g, '').trim());
+  if (!passos.length) { e.preventDefault(); alert('Escreva ao menos um passo da estrutura.'); return; }
+  document.getElementById('estrutura_json').value = JSON.stringify(passos);
+});
+</script>
 {% endblock %}

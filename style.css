@@ -191,7 +191,7 @@ code { font-size: .88em; background: var(--toga-claro); padding: .05rem .3rem; b
 }
 
 /* ---------- formulário de edição ---------- */
-.formulario { max-width: 760px; }
+.formulario { max-width: 980px; }
 .formulario input[type=text], .formulario textarea {
   width: 100%; font: 1rem/1.5 var(--sans); color: var(--tinta);
   padding: .55rem .7rem; border: 1.5px solid var(--linha); border-radius: 4px; background: #fff;
@@ -199,3 +199,57 @@ code { font-size: .88em; background: var(--toga-claro); padding: .05rem .3rem; b
 .formulario textarea { resize: vertical; }
 .formulario input:focus, .formulario textarea:focus { border-color: var(--toga); outline: none; box-shadow: 0 0 0 3px var(--marca-fraca); }
 .formulario label { margin-top: 1rem; }
+
+/* ---------- passos coloridos e formatados ---------- */
+.esqueleto li.com-cor { box-shadow: inset 4px 0 0 var(--cor); background: color-mix(in srgb, var(--cor) 8%, var(--folha)); }
+.esqueleto li.com-cor::before { color: var(--cor); }
+.dica-esqueleto .esqueleto.compacto { padding: 0; margin-top: .6rem; color: var(--tinta); font-size: .92rem; }
+.dica-esqueleto .esqueleto.compacto li { padding: .45rem .8rem .45rem 2.6rem; }
+.dica-esqueleto .esqueleto.compacto li::before { left: .8rem; }
+
+/* ---------- editor de estrutura ---------- */
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.rotulo { display: block; font-weight: 500; margin-top: 1rem; }
+.editor-barra {
+  position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem;
+  padding: .5rem; background: var(--toga-claro); border-radius: 4px 4px 0 0;
+}
+.editor-barra .sep { width: 1px; height: 1.6rem; background: var(--linha); margin: 0 .2rem; }
+.ferr, .editor-barra select {
+  min-width: 2.2rem; height: 2.2rem; padding: 0 .55rem; border: 1px solid var(--linha); border-radius: 4px;
+  background: #fff; color: var(--tinta); font: 500 .95rem var(--sans); cursor: pointer;
+}
+.ferr:hover, .editor-barra select:hover { border-color: var(--toga); }
+.ferr.marca { background: var(--marca); }
+.amostra { width: 1.6rem; height: 1.6rem; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--linha); background: var(--a); cursor: pointer; padding: 0; }
+.amostra:hover { box-shadow: 0 0 0 2px var(--toga); }
+.cor-livre { display: inline-flex; margin: 0; }
+.cor-livre input { width: 2.2rem; height: 2.2rem; padding: 0; border: 1px solid var(--linha); border-radius: 4px; background: #fff; cursor: pointer; }
+
+.passos-editor { counter-reset: passo; list-style: none; margin: 0 0 .75rem; padding: 0; border: 1.5px solid var(--linha); border-top: 0; background: #fff; }
+.passo { counter-increment: passo; display: grid; grid-template-columns: 2.4rem minmax(0, 1fr) auto; align-items: start; border-bottom: 1px solid var(--linha); }
+.passo:last-child { border-bottom: 0; }
+.passo::before { content: counter(passo); padding: .65rem 0 0 .8rem; font: 600 .95rem var(--serif); color: var(--cor, var(--toga)); }
+.passo[style*="--cor"] { box-shadow: inset 4px 0 0 var(--cor); background: color-mix(in srgb, var(--cor) 7%, #fff); }
+.passo .texto { padding: .6rem .5rem; min-height: 2.6rem; outline: none; line-height: 1.5; }
+.passo .texto:focus { box-shadow: inset 0 0 0 2px var(--marca); }
+.passo-acoes { display: flex; align-items: center; gap: .25rem; padding: .45rem .5rem; justify-content: flex-end; }
+.cores-passo { display: flex; gap: .2rem; margin-right: .3rem; }
+.bolinha { width: 1.1rem; height: 1.1rem; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--linha); padding: 0; cursor: pointer; }
+.bolinha.sem { background: repeating-linear-gradient(45deg, #fff 0 3px, var(--linha) 3px 4px); }
+.bolinha[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--tinta); }
+.mini { width: 1.8rem; height: 1.8rem; border: 1px solid var(--linha); border-radius: 4px; background: #fff; cursor: pointer; font-size: .95rem; color: var(--tinta-suave); }
+.mini:hover { border-color: var(--toga); color: var(--tinta); }
+@media (max-width: 640px) {
+  .passo { grid-template-columns: 2rem minmax(0, 1fr); }
+  .passo-acoes { grid-column: 2; justify-content: flex-start; max-width: none; padding-top: 0; }
+}
+
+/* ---------- linhas conectoras (sem número) ---------- */
+.esqueleto li.conector { counter-increment: none; font-style: italic; color: var(--tinta-suave); }
+.esqueleto li.conector::before { content: ""; }
+.passo.conector { counter-increment: none; }
+.passo.conector::before { content: "–"; color: var(--tinta-suave); }
+.passo.conector .texto { font-style: italic; color: var(--tinta-suave); }
+.mini.alterna { width: auto; padding: 0 .45rem; font-size: .8rem; white-space: nowrap; }
+.mini.alterna[aria-pressed="true"] { background: var(--tinta); border-color: var(--tinta); color: #fff; }
