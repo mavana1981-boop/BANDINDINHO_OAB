@@ -206,6 +206,11 @@ def editar_peca(key):
     return render_template("editar_peca.html", peca=peca)
 
 
+@app.route("/estruturas/<key>/imprimir")
+def imprimir_peca(key):
+    return render_template("imprimir_peca.html", peca=_peca_ou_404(key), data=db.agora())
+
+
 @app.post("/estruturas/<key>/restaurar")
 def restaurar_peca(key):
     _peca_ou_404(key)

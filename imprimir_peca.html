@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ peca.nome }} · Estrutura</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4; margin: 18mm 16mm; }
+    * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { margin: 0; background: #EDF0EA; color: #1D2B27; font: 11pt/1.5 "IBM Plex Sans", Arial, sans-serif; }
+    .folha { max-width: 210mm; margin: 1.5rem auto; background: #fff; padding: 16mm; }
+    .barra { max-width: 210mm; margin: 1rem auto 0; display: flex; gap: .6rem; justify-content: flex-end; }
+    .barra button, .barra a { font: 500 .95rem "IBM Plex Sans", Arial, sans-serif; padding: .6rem 1rem; border-radius: 4px; cursor: pointer; text-decoration: none; }
+    .barra button { background: #24493F; color: #fff; border: 0; }
+    .barra a { color: #24493F; border: 1.5px solid #24493F; }
+    header { border-bottom: 2px solid #24493F; padding-bottom: .6rem; margin-bottom: 1rem; }
+    .sobre { margin: 0; font-size: 9pt; color: #4F5F59; }
+    h1 { font: 600 20pt/1.2 "Source Serif 4", Georgia, serif; margin: .2rem 0 .3rem; }
+    .quando { margin: 0; color: #4F5F59; }
+    h2 { font: 600 12.5pt "Source Serif 4", Georgia, serif; margin: 1.1rem 0 .4rem; color: #24493F; }
+    ol { counter-reset: passo; list-style: none; padding: 0; margin: 0; }
+    ol li { counter-increment: passo; position: relative; padding: .4rem .6rem .4rem 2.4rem; border-bottom: 1px solid #DCE3DE; break-inside: avoid; }
+    ol li::before { content: counter(passo); position: absolute; left: .7rem; font: 600 10.5pt "Source Serif 4", Georgia, serif; color: #24493F; }
+    ol li.com-cor { border-left: 4px solid var(--cor); background: color-mix(in srgb, var(--cor) 8%, #fff); }
+    ol li.com-cor::before { color: var(--cor); }
+    ol li.conector { counter-increment: none; font-style: italic; color: #4F5F59; }
+    ol li.conector::before { content: ""; }
+    dl { display: grid; grid-template-columns: 8.5rem 1fr; gap: .35rem 1rem; margin: 0; }
+    dt { font-weight: 600; }
+    dd { margin: 0; color: #33423D; }
+    ul { margin: 0; padding-left: 1.2rem; }
+    footer { margin-top: 1.2rem; font-size: 8.5pt; color: #4F5F59; }
+    @media print {
+      body { background: #fff; }
+      .barra { display: none; }
+      .folha { margin: 0; padding: 0; max-width: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="barra">
+    <a href="{{ url_for('estrutura_peca', key=peca.key) }}">Voltar</a>
+    <button type="button" onclick="window.print()">Imprimir / salvar em PDF</button>
+  </div>
+  <main class="folha">
+    <header>
+      <p class="sobre">OAB 2ª fase · Direito do Trabalho · Esqueleto-modelo{% if peca.editada %} (versão editada){% endif %}</p>
+      <h1>{{ peca.nome }}</h1>
+      {% if peca.quando %}<p class="quando">{{ peca.quando }}</p>{% endif %}
+    </header>
+
+    <h2>Estrutura</h2>
+    <ol>
+      {% for e in peca.estrutura %}{% if e is mapping %}<li class="{{ 'com-cor' if e.cor }} {{ 'conector' if e.conector }}"{% if e.cor %} style="--cor: {{ e.cor }}"{% endif %}>{{ e.html|safe }}</li>{% else %}<li>{{ e }}</li>{% endif %}{% endfor %}
+    </ol>
+
+    {% if peca.prazo or peca.base_legal or peca.enderecamento %}
+    <h2>Referências</h2>
+    <dl>
+      {% if peca.prazo %}<dt>Prazo</dt><dd>{{ peca.prazo }}</dd>{% endif %}
+      {% if peca.base_legal %}<dt>Base legal</dt><dd>{{ peca.base_legal }}</dd>{% endif %}
+      {% if peca.enderecamento %}<dt>Endereçamento</dt><dd>{{ peca.enderecamento }}</dd>{% endif %}
+    </dl>
+    {% endif %}
+
+    {% if peca.dicas %}
+    <h2>Atenção</h2>
+    <ul>{% for d in peca.dicas %}<li>{{ d }}</li>{% endfor %}</ul>
+    {% endif %}
+
+    <footer>Gerado em {{ data }}</footer>
+  </main>
+  <script>
+    // abre a janela de impressão automaticamente, depois que as fontes carregarem
+    window.addEventListener('load', () => (document.fonts ? document.fonts.ready : Promise.resolve()).then(() => setTimeout(() => window.print(), 300)));
+  </script>
+</body>
+</html>
