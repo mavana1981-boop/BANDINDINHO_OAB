@@ -137,7 +137,10 @@ function novoPasso(html = '', cor = '', depoisDe = null, conector = false) {
   return li;
 }
 
-({{ peca.estrutura|tojson }}).forEach(p => novoPasso(p.html, p.cor, null, p.conector));
+const textoSeguro = t => { const d = document.createElement('div'); d.textContent = t; return d.innerHTML; };
+({{ peca.estrutura|tojson }}).forEach(p => typeof p === 'string'
+  ? novoPasso(textoSeguro(p))                        // formato antigo: só texto
+  : novoPasso(p.html || '', p.cor || '', null, !!p.conector));
 if (!lista.children.length) novoPasso();
 document.getElementById('add-passo').addEventListener('click', () => novoPasso().querySelector('.texto').focus());
 

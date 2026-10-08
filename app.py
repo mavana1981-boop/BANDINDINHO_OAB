@@ -8,6 +8,7 @@ from flask import (Flask, abort, flash, jsonify, redirect, render_template, requ
 
 import db
 import ia
+from formatacao import limpar_passos, normalizar_estrutura
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 META_PROVAS = 30
@@ -40,7 +41,12 @@ with open(db.caminho_dado("pecas.json"), encoding="utf-8") as f:
 def catalogo():
     """Peças do pecas.json com as edições do usuário (gravadas no banco) por cima."""
     edicoes = db.edicoes_pecas()
-    return [{**p, **edicoes.get(p["key"], {}), "editada": p["key"] in edicoes} for p in PECAS_BASE]
+    pecas = []
+    for p in PECAS_BASE:
+        peca = {**p, **edicoes.get(p["key"], {}), "editada": p["key"] in edicoes}
+        peca["estrutura"] = normalizar_estrutura(peca.get("estrutura"))
+        pecas.append(peca)
+    return pecas
 
 
 def por_key():
@@ -186,7 +192,10 @@ def editar_peca(key):
         def linhas(campo):
             return [l.strip() for l in request.form.get(campo, "").splitlines() if l.strip()]
         dados = {c: request.form.get(c, "").strip() for c in ["nome", "quando", "prazo", "base_legal", "enderecamento"]}
-        dados["estrutura"] = linhas("estrutura")
+        try:
+            dados["estrutura"] = limpar_passos(json.loads(request.form.get("estrutura_json") or "[]"))
+        except (ValueError, TypeError):
+            dados["estrutura"] = []
         dados["dicas"] = linhas("dicas")
         if not dados["nome"] or not dados["estrutura"]:
             flash("O nome e ao menos um passo da estrutura são obrigatórios.", "erro")

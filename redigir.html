@@ -14,7 +14,7 @@
       <textarea class="folha" id="folha" spellcheck="true" placeholder="Comece pelo endereçamento…"></textarea>
       <details class="dica-esqueleto">
         <summary>Mostrar o esqueleto desta peça</summary>
-        <ol class="esqueleto compacto">{% for e in peca.estrutura %}<li class="{{ 'com-cor' if e.cor }} {{ 'conector' if e.conector }}"{% if e.cor %} style="--cor: {{ e.cor }}"{% endif %}>{{ e.html|safe }}</li>{% endfor %}</ol>
+        <ol class="esqueleto compacto">{% for e in peca.estrutura %}{% if e is mapping %}<li class="{{ 'com-cor' if e.cor }} {{ 'conector' if e.conector }}"{% if e.cor %} style="--cor: {{ e.cor }}"{% endif %}>{{ e.html|safe }}</li>{% else %}<li>{{ e }}</li>{% endif %}{% endfor %}</ol>
       </details>
     </div>
     <div class="acoes">
