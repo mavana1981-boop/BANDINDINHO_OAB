@@ -182,7 +182,24 @@ def estruturas():
 @app.route("/estruturas/<key>")
 def estrutura_peca(key):
     peca = _peca_ou_404(key)
-    return render_template("estrutura_peca.html", peca=peca, casos=db.listar_provas(key))
+    outras = [p for p in catalogo() if p["key"] != key]
+    return render_template("estrutura_peca.html", peca=peca, casos=db.listar_provas(key), outras=outras)
+
+
+@app.post("/estruturas/<key>/copiar")
+def copiar_estrutura(key):
+    destino = _peca_ou_404(key)
+    origem = por_key().get(request.form.get("origem", ""))
+    if not origem or origem["key"] == key:
+        flash("Escolha uma peça de origem válida.", "erro")
+        return redirect(url_for("estrutura_peca", key=key))
+    # mantém nome, prazo, base legal etc. da peça atual; troca só os passos da estrutura
+    dados = {c: destino.get(c, "") for c in ["nome", "quando", "prazo", "base_legal", "enderecamento"]}
+    dados["dicas"] = destino.get("dicas", [])
+    dados["estrutura"] = [dict(p) for p in origem["estrutura"]]
+    db.salvar_edicao_peca(key, dados)
+    flash(f"Estrutura copiada de {origem['nome']}. Ajuste o que for diferente nesta peça.", "ok")
+    return redirect(url_for("editar_peca", key=key))
 
 
 @app.route("/estruturas/<key>/editar", methods=["GET", "POST"])
@@ -265,18 +282,48 @@ def importar():
                 flash(f"JSON inválido: {e}", "erro")
             return redirect(url_for("importar"))
 
-        pdfs = [f.read() for f in request.files.getlist("pdfs") if f and f.filename]
-        try:
-            dados = ia.importar_pdfs(pdfs, catalogo())
-        except ia.ErroIA as e:
-            flash(str(e), "erro")
-            return redirect(url_for("importar"))
-        novo_id = db.inserir_prova(dados)
-        flash(f"{dados['exame']} importado: peça {por_key()[dados['peca_correta']]['nome']}. "
-              "Confira o enunciado e a pontuação antes de treinar.", "ok")
-        return redirect(url_for("revisar", prova_id=novo_id))
+        # PDFs agora são enviados um a um pelo navegador, via /api/importar-pdf
+        return redirect(url_for("importar"))
     return render_template("importar.html", provas=db.listar_provas(),
                            oficiais=db.contar_oficiais(), meta=META_PROVAS)
+
+
+def _gravar_prova(d):
+    """Insere a prova; se o mesmo exame já existe, completa o que faltava em vez de duplicar."""
+    if d.get("ordem"):
+        existente = db.query("SELECT id, padrao_json FROM provas WHERE origem = 'oficial' AND ordem = ?",
+                             (d["ordem"],), one=True)
+    else:
+        existente = db.query("SELECT id, padrao_json FROM provas WHERE origem = 'oficial' AND exame = ?",
+                             (d["exame"],), one=True)
+    if not existente:
+        return db.inserir_prova(d), "nova"
+    tinha_pontos = bool(json.loads(existente["padrao_json"]).get("itens"))
+    if not tinha_pontos and d["padrao"].get("itens"):
+        db.query("UPDATE provas SET peca_correta = ?, enunciado = ?, padrao_json = ?, ano = ? WHERE id = ?",
+                 (d["peca_correta"], d["enunciado"], json.dumps(d["padrao"], ensure_ascii=False),
+                  d.get("ano", ""), existente["id"]), commit=True)
+        return existente["id"], "completada"
+    return existente["id"], "repetida"
+
+
+@app.post("/api/importar-pdf")
+def api_importar_pdf():
+    arquivo = request.files.get("pdf")
+    if not arquivo or not arquivo.filename:
+        return jsonify({"erro": "Nenhum arquivo enviado."}), 400
+    try:
+        provas, problemas = ia.importar_pdf(arquivo.read(), catalogo())
+    except ia.ErroIA as e:
+        return jsonify({"erro": str(e)}), 502
+    pk = por_key()
+    resultado = []
+    for d in provas:
+        pid, situacao = _gravar_prova(d)
+        resultado.append({"id": pid, "exame": d["exame"], "peca": pk[d["peca_correta"]]["nome"],
+                          "situacao": situacao, "tem_pontos": bool(d["padrao"].get("itens")),
+                          "link": url_for("revisar", prova_id=pid)})
+    return jsonify({"provas": resultado, "avisos": problemas})
 
 
 @app.route("/provas/<int:prova_id>")
