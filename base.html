@@ -15,10 +15,11 @@
     {% set ep = request.endpoint or '' %}
     <nav aria-label="Principal">
       <a href="{{ url_for('qual_peca_lista') }}" {% if ep.startswith('qual_peca') %}aria-current="page"{% endif %}>Qual é a peça</a>
-      <a href="{{ url_for('estruturas') }}" {% if ep in ['estruturas','estrutura_peca','redigir'] %}aria-current="page"{% endif %}>Estruturas</a>
+      <a href="{{ url_for('estruturas') }}" {% if ep in ['estruturas','estrutura_peca','redigir','editar_peca'] %}aria-current="page"{% endif %}>Estruturas</a>
+      <a href="{{ url_for('questoes_lista') }}" {% if ep in ['questoes_lista','questao'] %}aria-current="page"{% endif %}>Questões</a>
       <a href="{{ url_for('importar') }}" {% if ep in ['importar','revisar'] %}aria-current="page"{% endif %}>Provas</a>
       <a href="{{ url_for('historico') }}" {% if ep in ['historico','tentativa'] %}aria-current="page"{% endif %}>Histórico</a>
-      <a href="{{ url_for('sair') }}" title="Zera as estatísticas do Qual é a peça">Sair</a>
+      <a href="{{ url_for('sair') }}" title="Sai da tentativa em andamento">Sair</a>
     </nav>
   </header>
   {% block cheio %}

@@ -166,3 +166,102 @@ def importar_pdfs(pdfs, catalogo):
     if not todas:
         raise ErroIA("Envie ao menos um PDF.")
     return todas[0]
+
+
+# --------------------------------------------------------------------------- questões discursivas
+
+SYSTEM_IMPORTAR_QUESTOES = """Você extrai as QUESTÕES DISCURSIVAS da 2ª fase da OAB (FGV), área Direito do Trabalho.
+Receberá um PDF: padrão de resposta (preferível) ou caderno de prova. Ignore a peça prático-profissional; extraia só as questões (normalmente 4 por exame, cada uma com itens A e B).
+
+Para cada questão:
+- "numero": 1, 2, 3 ou 4.
+- "enunciado": o caso comum da questão, transcrito integralmente.
+- "itens": um por letra, com:
+  - "letra": "A", "B"...
+  - "pergunta": a pergunta do item, transcrita.
+  - "gabarito": o gabarito comentado do item, sem perder fundamentos legais e súmulas (pode resumir o texto corrido).
+  - "distribuicao": a tabela de distribuição dos pontos do item, uma linha por faixa de pontuação, com a descrição do que é exigido e os pontos (ex.: "Não, pois a prescrição é bienal (0,50). Art. 7º, XXIX, CF (0,10)" vira duas linhas: 0.50 e 0.10).
+- "exame": ex. "XXXVIII Exame"; "ordem": número arábico do exame (38); "ano": ano de aplicação.
+- Se o PDF não tiver o padrão de resposta, deixe "gabarito" vazio e "distribuicao" vazia.
+Seja conciso no gabarito para caber tudo na resposta.
+
+Responda SOMENTE com um único JSON, sem markdown:
+{"questoes": [{"exame": "", "ordem": 0, "ano": "", "numero": 1, "enunciado": "",
+  "itens": [{"letra": "A", "pergunta": "", "gabarito": "", "distribuicao": [{"descricao": "", "pontos": 0.0}]}]}]}"""
+
+
+def importar_questoes_pdf(pdf_bytes):
+    if not pdf_bytes:
+        raise ErroIA("Arquivo vazio.")
+    content = [
+        {"type": "document", "source": {"type": "base64", "media_type": "application/pdf",
+                                        "data": base64.standard_b64encode(pdf_bytes).decode()}},
+        {"type": "text", "text": "Extraia as questões discursivas conforme as instruções."},
+    ]
+    brutos = []
+    for obj in _objetos_json(_chamar(SYSTEM_IMPORTAR_QUESTOES, content, 20000)):
+        brutos.extend(obj["questoes"] if isinstance(obj.get("questoes"), list) else [obj])
+    questoes = []
+    for q in brutos:
+        if not isinstance(q, dict) or not q.get("enunciado") or not isinstance(q.get("itens"), list):
+            continue
+        try:
+            q["numero"] = int(q.get("numero") or 0)
+            q["ordem"] = int(q.get("ordem") or 0)
+        except (TypeError, ValueError):
+            continue
+        itens = []
+        for i in q["itens"]:
+            if isinstance(i, dict) and i.get("pergunta"):
+                dist = [{"descricao": str(d.get("descricao", "")), "pontos": float(d.get("pontos") or 0)}
+                        for d in (i.get("distribuicao") or []) if isinstance(d, dict)]
+                itens.append({"letra": str(i.get("letra") or "").upper()[:2], "pergunta": i["pergunta"],
+                              "gabarito": i.get("gabarito", ""), "distribuicao": dist})
+        if q["numero"] and itens:
+            q["itens"] = itens
+            q.setdefault("exame", f"Exame {q['ordem']}" if q["ordem"] else "Exame")
+            questoes.append(q)
+    if not questoes:
+        raise ErroIA("Não encontrei questões discursivas neste PDF.")
+    return questoes
+
+
+SYSTEM_CORRIGIR_QUESTAO = """Você é examinador da 2ª fase da OAB (FGV), Direito do Trabalho, corrigindo uma QUESTÃO DISCURSIVA.
+Corrija cada item estritamente pela distribuição de pontos do padrão de resposta, como a banca:
+- Cada linha da distribuição vale os pontos indicados. Conceda integral se o candidato atendeu, zero se não atendeu. A FGV não costuma dar fração de uma linha; use pontuação parcial só se a linha agrupar exigências separáveis.
+- Fundamento legal só pontua se correto e ligado à conclusão certa. Mera citação de artigo, sem resposta, não pontua. Conclusão certa com fundamento errado pontua só a conclusão.
+- Aceite redação diferente com o mesmo sentido jurídico e fundamentos equivalentes admitidos pelo padrão.
+- Resposta em branco ou que só copia o enunciado: zero.
+- Seja objetivo, em português do Brasil.
+
+Responda SOMENTE com JSON, sem markdown:
+{"itens": [{"letra": "A", "linhas": [{"descricao": "linha da distribuição", "pontos_max": 0.0, "pontos_obtidos": 0.0, "comentario": "..."}],
+   "acertos": ["..."], "erros": [{"problema": "...", "como_corrigir": "..."}]}],
+ "observacoes": "síntese em 1 a 3 frases"}"""
+
+
+def corrigir_questao(questao, respostas):
+    """respostas: {letra: texto}. Devolve resultado com notas recalculadas pelo servidor."""
+    partes = [f"ENUNCIADO:\n{questao['enunciado']}\n"]
+    for i in questao["itens"]:
+        dist = "\n".join(f"  - ({d['pontos']:.2f}) {d['descricao']}" for d in i["distribuicao"])
+        partes.append(f"ITEM {i['letra']}\nPergunta: {i['pergunta']}\nGabarito: {i['gabarito']}\n"
+                      f"Distribuição dos pontos:\n{dist}\n"
+                      f"RESPOSTA DO CANDIDATO ({i['letra']}):\n<<<\n{respostas.get(i['letra'], '').strip() or '(em branco)'}\n>>>\n")
+    resultado = _extrair_json(_chamar(SYSTEM_CORRIGIR_QUESTAO, "\n".join(partes), 6000))
+    # a nota é recalculada aqui, limitada ao máximo de cada linha e de cada item
+    max_por_letra = {i["letra"]: sum(d["pontos"] for d in i["distribuicao"]) for i in questao["itens"]}
+    total = 0.0
+    for item in resultado.get("itens", []):
+        soma = 0.0
+        for linha in item.get("linhas", []):
+            pm = float(linha.get("pontos_max") or 0)
+            po = max(0.0, min(float(linha.get("pontos_obtidos") or 0), pm))
+            linha["pontos_max"], linha["pontos_obtidos"] = pm, po
+            soma += po
+        item["nota"] = round(min(soma, max_por_letra.get(item.get("letra"), soma)), 2)
+        item["nota_maxima"] = round(max_por_letra.get(item.get("letra"), 0), 2)
+        total += item["nota"]
+    resultado["nota"] = round(total, 2)
+    resultado["nota_maxima"] = round(sum(max_por_letra.values()), 2)
+    return resultado

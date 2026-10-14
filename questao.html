@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block titulo %}{{ q.exame }} · Questão {{ q.numero }}{% endblock %}
+{% block conteudo %}
+<p class="discreto"><a href="{{ url_for('questoes_lista') }}">Questões</a></p>
+<h1>{{ q.exame }} · Questão {{ q.numero }}</h1>
+<div class="mesa-q">
+  <article class="enunciado" tabindex="0" aria-label="Enunciado">{{ q.enunciado }}</article>
+  <section>
+    {% if not tem_gabarito %}
+    <p class="aviso erro">Esta questão foi importada sem a tabela de pontos, então a correção fica indisponível. Importe o padrão de resposta deste exame em Questões.</p>
+    {% endif %}
+    {% for i in q.itens %}
+    <div class="item-q">
+      <label for="resp-{{ i.letra }}"><span class="letra">{{ i.letra }})</span> {{ i.pergunta }}</label>
+      <span class="discreto">Vale {{ '%.2f'|format(i.distribuicao|sum(attribute='pontos'))|replace('.', ',') }}</span>
+      <textarea id="resp-{{ i.letra }}" data-letra="{{ i.letra }}" rows="7" placeholder="Responda com conclusão e fundamento legal…"></textarea>
+    </div>
+    {% endfor %}
+    <div class="acoes">
+      <button class="botao" id="corrigir" type="button" {% if not tem_gabarito %}disabled{% endif %}>Corrigir com IA</button>
+      <button class="botao secundario" id="ver-gab" type="button">Ver gabarito</button>
+      <span class="discreto" id="salvo"></span>
+    </div>
+  </section>
+</div>
+
+<div id="resultado" aria-live="polite"></div>
+
+<section id="gabarito" hidden>
+  <h2>Gabarito e distribuição de pontos</h2>
+  {% for i in q.itens %}
+  <div class="gab-item">
+    <h3>Item {{ i.letra }}</h3>
+    {% if i.gabarito %}<p>{{ i.gabarito }}</p>{% endif %}
+    <ul class="itens">
+      {% for d in i.distribuicao %}<li><span class="pts">{{ '%.2f'|format(d.pontos)|replace('.', ',') }}</span><p class="desc">{{ d.descricao }}</p></li>{% endfor %}
+    </ul>
+  </div>
+  {% endfor %}
+</section>
+
+{% if tentativas %}
+<h2>Suas respostas anteriores</h2>
+<ul class="anteriores">
+  {% for t in tentativas %}
+  <li>
+    <details>
+      <summary>{{ t.created_at }} · <strong>{{ '%.2f'|format(t.nota or 0)|replace('.', ',') }}</strong> de {{ '%.2f'|format(q.pontos_max)|replace('.', ',') }}</summary>
+      {% for letra, texto in t.respostas.items() %}<p><strong>{{ letra }})</strong> {{ texto }}</p>{% endfor %}
+      <button type="button" class="botao secundario reabrir" data-idx="{{ loop.index0 }}">Ver correção</button>
+    </details>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+
+<form method="post" action="{{ url_for('questao_excluir', qid=q.id) }}" onsubmit="return confirm('Excluir esta questão e as respostas dela?')" style="margin-top:2rem">
+  <button class="botao perigo" type="submit">Excluir questão</button>
+</form>
+
+<style>
+  .mesa-q { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: clamp(1rem, 3vw, 2rem); align-items: start; }
+  .mesa-q .enunciado { position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; font-size: 1rem; }
+  .item-q { background: var(--folha); padding: 1rem 1.1rem; margin-bottom: 1rem; border-top: 3px solid var(--toga); }
+  .item-q label { display: block; font-family: var(--serif); font-size: 1.05rem; margin-bottom: .3rem; }
+  .item-q .letra { font-weight: 600; color: var(--toga); }
+  .item-q textarea { width: 100%; margin-top: .5rem; font: 1rem/1.6 var(--serif); padding: .7rem .8rem; border: 1.5px solid var(--linha); border-radius: 4px; background: #fff; color: var(--tinta); resize: vertical; }
+  .item-q textarea:focus { outline: none; border-color: var(--toga); box-shadow: 0 0 0 3px var(--marca-fraca); }
+  .gab-item { margin-bottom: 1.25rem; }
+  .bloco-item { margin-top: 1.25rem; }
+  .bloco-item h3 { display: flex; justify-content: space-between; gap: 1rem; }
+  .anteriores { list-style: none; padding: 0; }
+  .anteriores li { background: var(--folha); padding: .7rem 1rem; margin-bottom: .5rem; }
+  .anteriores summary { cursor: pointer; }
+  @media (max-width: 860px) { .mesa-q { grid-template-columns: 1fr; } .mesa-q .enunciado { position: static; max-height: 40vh; } }
+</style>
+{% endblock %}
+{% block scripts %}
+<script>
+const ANTERIORES = {{ tentativas|map(attribute='resultado')|list|tojson }};
+const fmt = x => Number(x || 0).toFixed(2).replace('.', ',');
+function el(tag, attrs = {}, ...filhos) {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) n.setAttribute(k, v);
+  filhos.forEach(f => f != null && n.append(f));
+  return n;
+}
+function mostrar(d) {
+  const alvo = document.getElementById('resultado');
+  alvo.innerHTML = '';
+  const box = el('section', {class: 'resultado'});
+  box.append(el('h2', {}, 'Correção'),
+             el('div', {class: 'placar'}, el('span', {class: 'nota'}, fmt(d.nota)), el('span', {class: 'de'}, `de ${fmt(d.nota_maxima)} pontos`)));
+  if (d.observacoes) box.append(el('p', {class: 'lead'}, d.observacoes));
+  (d.itens || []).forEach(it => {
+    const bloco = el('div', {class: 'bloco-item'});
+    bloco.append(el('h3', {}, `Item ${it.letra}`, el('span', {}, `${fmt(it.nota)} de ${fmt(it.nota_maxima)}`)));
+    const ul = el('ul', {class: 'itens'});
+    (it.linhas || []).forEach(l => {
+      const st = l.pontos_obtidos >= l.pontos_max && l.pontos_max > 0 ? 'atendido' : (l.pontos_obtidos > 0 ? 'parcial' : 'ausente');
+      ul.append(el('li', {class: st}, el('span', {class: 'pts'}, `${fmt(l.pontos_obtidos)} / ${fmt(l.pontos_max)}`),
+        el('div', {}, el('p', {class: 'desc'}, l.descricao), l.comentario ? el('p', {class: 'coment'}, l.comentario) : null)));
+    });
+    bloco.append(ul);
+    if ((it.acertos || []).length) {
+      const a = el('ul', {class: 'acertos'}); it.acertos.forEach(x => a.append(el('li', {}, x))); bloco.append(a);
+    }
+    if ((it.erros || []).length) {
+      const e = el('ul', {class: 'erros'});
+      it.erros.forEach(x => e.append(el('li', {}, el('div', {}, el('strong', {}, x.problema)), x.como_corrigir ? el('div', {}, x.como_corrigir) : null)));
+      bloco.append(e);
+    }
+    box.append(bloco);
+  });
+  alvo.append(box);
+  alvo.scrollIntoView({behavior: 'smooth', block: 'start'});
+}
+
+const campos = [...document.querySelectorAll('textarea[data-letra]')];
+const chave = 'questao-{{ q.id }}';
+try { const s = JSON.parse(localStorage.getItem(chave) || '{}'); campos.forEach(c => c.value = s[c.dataset.letra] || ''); } catch (e) {}
+campos.forEach(c => c.addEventListener('input', () => {
+  try {
+    localStorage.setItem(chave, JSON.stringify(Object.fromEntries(campos.map(x => [x.dataset.letra, x.value]))));
+    document.getElementById('salvo').textContent = 'Rascunho salvo neste navegador';
+  } catch (e) {}
+}));
+
+document.getElementById('ver-gab').addEventListener('click', (ev) => {
+  const g = document.getElementById('gabarito');
+  if (g.hidden && !confirm('Ver o gabarito antes de responder? Isso estraga o treino desta questão.')) return;
+  g.hidden = !g.hidden;
+  ev.currentTarget.textContent = g.hidden ? 'Ver gabarito' : 'Esconder gabarito';
+  if (!g.hidden) g.scrollIntoView({behavior: 'smooth'});
+});
+
+document.getElementById('corrigir').addEventListener('click', async (ev) => {
+  const btn = ev.currentTarget, alvo = document.getElementById('resultado');
+  btn.disabled = true; btn.textContent = 'Corrigindo…';
+  alvo.innerHTML = '<p class="carregando resultado">A banca está lendo suas respostas…</p>';
+  try {
+    const r = await fetch('{{ url_for("api_corrigir_questao", qid=q.id) }}', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({respostas: Object.fromEntries(campos.map(c => [c.dataset.letra, c.value]))})
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Falha na correção.');
+    mostrar(d);
+  } catch (e) {
+    alvo.innerHTML = ''; alvo.append(el('p', {class: 'aviso erro'}, e.message));
+  } finally { btn.disabled = false; btn.textContent = 'Corrigir com IA'; }
+});
+
+document.querySelectorAll('.reabrir').forEach(b => b.addEventListener('click', () => {
+  const d = ANTERIORES[Number(b.dataset.idx)]; if (d) mostrar(d);
+}));
+</script>
+{% endblock %}
