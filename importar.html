@@ -79,7 +79,8 @@ document.getElementById('form-pdf').addEventListener('submit', async (ev) => {
     it.li.className = 'andando'; it.det.textContent = 'Lendo com a IA…';
     const dados = new FormData(); dados.append('pdf', it.f);
     try {
-      const r = await fetch('{{ url_for("api_importar_pdf") }}', {method: 'POST', body: dados});
+      const r = await fetch('/api/importar-pdf', {method: 'POST', body: dados});
+      if (r.status === 404 || r.status === 405) throw new Error('O app.py do servidor está desatualizado: ele ainda não tem a importação por arquivo. Substitua o app.py no GitHub pela versão nova (355 linhas).');
       let d;
       try { d = await r.json(); } catch (e) { throw new Error(r.status === 504 || r.status === 502 ? 'O servidor demorou demais. Tente este arquivo de novo.' : 'Resposta inválida do servidor (' + r.status + ').'); }
       if (!r.ok) throw new Error(d.erro || 'Falha na importação.');

@@ -8,6 +8,7 @@ from flask import (Flask, abort, flash, jsonify, redirect, render_template, requ
 
 import db
 import ia
+import tentativas
 from formatacao import limpar_passos, normalizar_estrutura
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -56,6 +57,7 @@ FREQUENTES = ["contestacao", "recurso_ordinario", "reclamacao_trabalhista", "agr
               "embargos_execucao", "recurso_revista", "contrarrazoes", "mandado_seguranca"]
 
 db.init_db()
+tentativas.init()
 
 
 @app.context_processor
@@ -84,25 +86,67 @@ def inicio():
 
 
 # ------------------------------------------------------------------ 1. Qual é a peça
-# As estatísticas deste módulo ficam só na sessão do navegador: somem ao clicar em "Sair"
-# ou ao fechar o navegador. Nada é gravado no banco.
+# Cada tentativa fica gravada no banco (tabelas quiz_sessoes e quiz_respostas).
+# A tentativa em andamento é lembrada na sessão do navegador.
 
-def _quiz():
-    q = session.get("quiz") or {"acertos": [], "erros": 0, "respondidas": 0}
-    session["quiz"] = q
-    return q
+def _ids_provas():
+    return {p["id"] for p in db.listar_provas()}
+
+
+def _tentativa_ativa(criar_se_faltar=True):
+    t = tentativas.obter(session.get("tentativa"))
+    if not t and criar_se_faltar:
+        t = tentativas.obter(tentativas.criar())
+        session["tentativa"] = t["id"]
+    return t
 
 
 @app.route("/qual-e-a-peca")
 def qual_peca_lista():
     provas = db.listar_provas()
-    q = _quiz()
     ids = {p["id"] for p in provas}
-    acertos = [i for i in q["acertos"] if i in ids]
-    return render_template("qual_peca_lista.html", provas=provas, acertos=set(acertos),
-                           n_acertos=len(acertos), erros=q["erros"], respondidas=q["respondidas"],
-                           concluiu=bool(provas) and len(acertos) == len(provas),
+    lista = tentativas.listar(ids)
+    ativa = next((t for t in lista if t["id"] == session.get("tentativa")), None)
+    return render_template("qual_peca_lista.html", provas=provas, tentativas=lista, ativa=ativa,
+                           acertos=set(ativa["acertos"]) if ativa else set(),
                            oficiais=db.contar_oficiais(), meta=META_PROVAS)
+
+
+@app.post("/qual-e-a-peca/tentativas/nova")
+def tentativa_nova():
+    session["tentativa"] = tentativas.criar(request.form.get("nome"))
+    return redirect(url_for("qual_peca_sortear"))
+
+
+@app.post("/qual-e-a-peca/tentativas/<int:sid>/continuar")
+def tentativa_continuar(sid):
+    if not tentativas.obter(sid):
+        abort(404)
+    session["tentativa"] = sid
+    return redirect(url_for("qual_peca_sortear"))
+
+
+@app.post("/qual-e-a-peca/tentativas/<int:sid>/reiniciar")
+def tentativa_reiniciar(sid):
+    t = tentativas.obter(sid)
+    if not t:
+        abort(404)
+    tentativas.reiniciar(sid)
+    session["tentativa"] = sid
+    flash(f"{t['nome']} reiniciada: todas as provas voltaram para o sorteio.", "ok")
+    return redirect(url_for("qual_peca_lista"))
+
+
+@app.post("/qual-e-a-peca/tentativas/<int:sid>/excluir")
+def tentativa_excluir(sid):
+    t = tentativas.obter(sid)
+    if not t:
+        abort(404)
+    tentativas.excluir(sid)
+    if session.get("tentativa") == sid:
+        session.pop("tentativa", None)
+    flash(f"{t['nome']} excluída.", "ok")
+    return redirect(url_for("qual_peca_lista"))
 
 
 @app.route("/qual-e-a-peca/sortear")
@@ -110,7 +154,8 @@ def qual_peca_sortear():
     provas = db.listar_provas()
     if not provas:
         return redirect(url_for("importar"))
-    acertos = set(_quiz()["acertos"])
+    t = _tentativa_ativa()
+    acertos = set(tentativas.resumo(t["id"], {p["id"] for p in provas})["acertos"])
     pendentes = [p for p in provas if p["id"] not in acertos]
     if not pendentes:  # acertou todas: não repete nenhuma
         return redirect(url_for("qual_peca_lista"))
@@ -123,8 +168,9 @@ def qual_peca_sortear():
 @app.route("/qual-e-a-peca/<int:prova_id>")
 def qual_peca(prova_id):
     prova = _prova_ou_404(prova_id)
-    if prova_id in _quiz()["acertos"]:
-        flash(f"Você já acertou {prova['exame']} nesta sessão. Sorteie outra prova.", "ok")
+    t = _tentativa_ativa()
+    if prova_id in tentativas.resumo(t["id"], _ids_provas())["acertos"]:
+        flash(f"Você já acertou {prova['exame']} em {t['nome']}. Sorteie outra prova.", "ok")
         return redirect(url_for("qual_peca_lista"))
     correta = prova["peca_correta"]
     pool = [k for k in FREQUENTES if k != correta]
@@ -133,7 +179,7 @@ def qual_peca(prova_id):
     pk = por_key()
     opcoes = [pk[k] for k in distratores + [correta]]
     random.shuffle(opcoes)
-    return render_template("qual_peca.html", prova=prova, opcoes=opcoes)
+    return render_template("qual_peca.html", prova=prova, opcoes=opcoes, tentativa=t)
 
 
 @app.post("/api/qual-e-a-peca/<int:prova_id>")
@@ -142,15 +188,10 @@ def api_qual_peca(prova_id):
     escolhida = (request.get_json(silent=True) or {}).get("peca")
     correta = por_key()[prova["peca_correta"]]
     acertou = escolhida == correta["key"]
-    q = _quiz()
-    q["respondidas"] += 1
-    if acertou and prova_id not in q["acertos"]:
-        q["acertos"].append(prova_id)
-    elif not acertou:
-        q["erros"] += 1
-    session["quiz"] = q
-    session.modified = True
-    restantes = len([p for p in db.listar_provas() if p["id"] not in q["acertos"]])
+    t = _tentativa_ativa()
+    tentativas.responder(t["id"], prova_id, escolhida, acertou)
+    ids = _ids_provas()
+    restantes = len(ids) - len(tentativas.resumo(t["id"], ids)["acertos"])
     return jsonify({
         "acertou": acertou,
         "correta": correta["key"],
@@ -165,7 +206,7 @@ def api_qual_peca(prova_id):
 
 @app.route("/sair")
 def sair():
-    session.clear()
+    session.clear()  # só deixa a tentativa em andamento; ela continua salva na lista
     return redirect(url_for("inicio"))
 
 

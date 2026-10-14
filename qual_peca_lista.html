@@ -2,26 +2,68 @@
 {% block titulo %}Qual é a peça{% endblock %}
 {% block conteudo %}
 <h1>Qual é a peça?</h1>
-<p class="lead">Cada prova traz o enunciado da peça prático-profissional. Você escolhe a medida cabível e vê a justificativa do padrão de resposta. Provas acertadas saem do sorteio.</p>
+<p class="lead">Cada tentativa percorre todas as provas cadastradas: você escolhe a peça cabível e vê a justificativa do padrão de resposta. Provas acertadas saem do sorteio daquela tentativa.</p>
 
-{% if concluiu %}
-<p class="aviso">Você acertou todas as {{ provas|length }} provas cadastradas nesta sessão.
-  {% if oficiais < meta %}Importe mais provas em <a href="{{ url_for('importar') }}">Provas</a> ou <a href="{{ url_for('sair') }}">saia</a> para recomeçar do zero.{% else %}<a href="{{ url_for('sair') }}">Saia</a> para recomeçar do zero.{% endif %}</p>
+{% if ativa %}
+<section class="ativa">
+  <h2>{{ ativa.nome }} <span class="discreto">· em andamento</span></h2>
+  {% if ativa.concluida %}
+  <p class="aviso">Você acertou todas as {{ provas|length }} provas nesta tentativa. Reinicie para treinar de novo ou crie uma nova tentativa.</p>
+  {% endif %}
+  <div class="progresso">
+    <span>{{ ativa.n_acertos }} de {{ provas|length }} acertadas · {{ ativa.erros }} {{ 'erro' if ativa.erros == 1 else 'erros' }} em {{ ativa.respondidas }} {{ 'resposta' if ativa.respondidas == 1 else 'respostas' }}</span>
+    <div class="trilha" aria-hidden="true"><span style="width: {{ ativa.pct }}%"></span></div>
+    {% if not ativa.concluida and provas %}<a class="botao" href="{{ url_for('qual_peca_sortear') }}">Sortear uma prova</a>{% endif %}
+  </div>
+</section>
 {% endif %}
 
-<div class="progresso">
-  <span>{{ n_acertos }} de {{ provas|length }} acertadas · {{ erros }} {{ 'erro' if erros == 1 else 'erros' }} em {{ respondidas }} {{ 'resposta' if respondidas == 1 else 'respostas' }}</span>
-  <div class="trilha" aria-hidden="true"><span style="width: {{ ((n_acertos / provas|length * 100)|round) if provas else 0 }}%"></span></div>
-  {% if not concluiu %}<a class="botao" href="{{ url_for('qual_peca_sortear') }}">Sortear uma prova</a>{% endif %}
-</div>
+<section>
+  <h2>{{ 'Tentativas' if tentativas else 'Comece uma tentativa' }}</h2>
+  <form class="nova-tentativa" method="post" action="{{ url_for('tentativa_nova') }}">
+    <label class="sr" for="nome-tentativa">Nome da tentativa</label>
+    <input id="nome-tentativa" name="nome" type="text" maxlength="80" placeholder="Nome (opcional), ex.: Revisão de sexta">
+    <button class="botao" type="submit">Nova tentativa</button>
+  </form>
+
+  {% if tentativas %}
+  <div class="rolagem">
+  <table class="tabela-provas">
+    <thead><tr><th>Tentativa</th><th>Desempenho</th><th>Última atividade</th><th></th></tr></thead>
+    <tbody>
+    {% for t in tentativas %}
+    <tr{% if ativa and t.id == ativa.id %} class="linha-ativa"{% endif %}>
+      <td><strong>{{ t.nome }}</strong>{% if ativa and t.id == ativa.id %}<br><span class="discreto">em andamento</span>{% endif %}<br><span class="discreto">criada em {{ t.created_at }}</span></td>
+      <td>
+        {{ t.n_acertos }} de {{ provas|length }} acertadas · {{ t.erros }} {{ 'erro' if t.erros == 1 else 'erros' }}
+        <div class="trilha mini-trilha" aria-hidden="true"><span style="width: {{ t.pct }}%"></span></div>
+        {% if t.concluida %}<span class="selo ok">Concluída</span>{% endif %}
+      </td>
+      <td>{{ t.updated_at }}</td>
+      <td class="acoes-tentativa">
+        {% if not (ativa and t.id == ativa.id) and not t.concluida %}
+        <form method="post" action="{{ url_for('tentativa_continuar', sid=t.id) }}"><button class="botao secundario" type="submit">Continuar</button></form>
+        {% endif %}
+        <form method="post" action="{{ url_for('tentativa_reiniciar', sid=t.id) }}" onsubmit="return confirm('Reiniciar {{ t.nome|e }}? Os acertos e erros dela serão zerados e todas as provas voltam ao sorteio.')"><button class="botao secundario" type="submit">Reiniciar</button></form>
+        <form method="post" action="{{ url_for('tentativa_excluir', sid=t.id) }}" onsubmit="return confirm('Excluir {{ t.nome|e }} de vez? Isso não pode ser desfeito.')"><button class="botao perigo" type="submit">Excluir</button></form>
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% endif %}
+</section>
+
 {% if oficiais < meta %}
-<p class="discreto">{{ oficiais }} de {{ meta }} provas oficiais importadas. Enquanto só houver os casos de treino, o sorteio gira entre eles; <a href="{{ url_for('importar') }}">importe as provas da FGV</a> para ampliar.</p>
+<p class="discreto">{{ oficiais }} de {{ meta }} provas oficiais importadas. <a href="{{ url_for('importar') }}">Importe as provas da FGV</a> para ampliar o sorteio.</p>
 {% endif %}
 
 {% if provas %}
+<h2>Provas{% if ativa %} nesta tentativa{% endif %}</h2>
 <div class="rolagem">
 <table class="tabela-provas">
-  <thead><tr><th>Prova</th><th>Começo do enunciado</th><th>Nesta sessão</th></tr></thead>
+  <thead><tr><th>Prova</th><th>Começo do enunciado</th><th>Situação</th></tr></thead>
   <tbody>
   {% for p in provas %}
     <tr>
@@ -36,4 +78,17 @@
 {% else %}
 <p class="aviso">Nenhuma prova cadastrada. <a href="{{ url_for('importar') }}">Importe a primeira</a>.</p>
 {% endif %}
+
+<style>
+  .ativa { background: var(--folha); padding: 1rem 1.25rem .25rem; border-left: 4px solid var(--toga); margin-bottom: 1.5rem; }
+  .ativa h2 { margin-top: 0; }
+  .nova-tentativa { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 1rem; }
+  .nova-tentativa input { flex: 1 1 260px; font: 1rem var(--sans); padding: .6rem .7rem; border: 1.5px solid var(--linha); border-radius: 4px; background: #fff; color: var(--tinta); }
+  .mini-trilha { height: 5px; margin: .35rem 0; max-width: 220px; }
+  .acoes-tentativa { white-space: nowrap; }
+  .acoes-tentativa form { display: inline-block; margin: .15rem .2rem .15rem 0; }
+  .acoes-tentativa .botao { padding: .45rem .8rem; font-size: .9rem; }
+  .linha-ativa td { background: var(--toga-claro); }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+</style>
 {% endblock %}
