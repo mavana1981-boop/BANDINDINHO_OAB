@@ -2,26 +2,27 @@
 {% block titulo %}Provas{% endblock %}
 {% block conteudo %}
 <h1>Provas</h1>
-<p class="lead">Importe as provas oficiais da FGV (área Direito do Trabalho). Envie o caderno da prova prático-profissional e o padrão de resposta: a IA extrai o enunciado da peça, a peça cabível e a distribuição dos pontos.</p>
+<p class="lead">Importe as provas oficiais da FGV (área Direito do Trabalho). Pode selecionar vários PDFs de uma vez: cada arquivo é lido separadamente pela IA, que extrai o enunciado da peça, a peça cabível e a distribuição dos pontos.</p>
 <div class="progresso">
   <span>{{ oficiais }} de {{ meta }} provas oficiais</span>
   <div class="trilha" aria-hidden="true"><span style="width: {{ [100, (oficiais / meta * 100)|round]|min }}%"></span></div>
 </div>
 <div class="dupla">
-  <form class="bloco" method="post" enctype="multipart/form-data" onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').textContent='Importando…'">
+  <form class="bloco" id="form-pdf">
     <h2 style="margin-top:0">Importar PDFs da FGV</h2>
-    <input type="hidden" name="tipo" value="pdf">
-    <label for="pdfs">Caderno da prova e padrão de resposta (um ou dois PDFs)</label>
+    <label for="pdfs">Padrões de resposta e/ou cadernos de prova (vários arquivos)</label>
     <input id="pdfs" type="file" name="pdfs" accept="application/pdf" multiple required>
-    <p class="discreto">Os arquivos ficam no site da FGV (oab.fgv.br), na página de cada exame. Escolha a prova de Direito do Trabalho.</p>
-    <button class="botao" type="submit">Importar prova</button>
+    <p class="discreto">O padrão de resposta já traz o enunciado e a tabela de pontos, então ele sozinho basta. Se enviar o caderno e o padrão do mesmo exame, o app junta os dois em vez de duplicar. Cada arquivo leva cerca de 30 a 60 segundos.</p>
+    <button class="botao" type="submit" id="btn-pdf">Importar provas</button>
+    <ol class="fila" id="fila" aria-live="polite"></ol>
+    <p id="fim" hidden><a class="botao secundario" href="{{ url_for('importar') }}">Atualizar a lista</a></p>
   </form>
   <form class="bloco" method="post" enctype="multipart/form-data">
     <h2 style="margin-top:0">Importar JSON</h2>
     <input type="hidden" name="tipo" value="json">
     <label for="arquivo_json">Arquivo .json com uma ou várias provas</label>
     <input id="arquivo_json" type="file" name="arquivo_json" accept=".json,application/json" required>
-    <p class="discreto">Mesmo formato de <code>data/casos_exemplo.json</code>. Útil para cadastrar várias provas de uma vez.</p>
+    <p class="discreto">Mesmo formato de <code>casos_exemplo.json</code>. Útil para cadastrar várias provas de uma vez.</p>
     <button class="botao secundario" type="submit">Importar JSON</button>
   </form>
 </div>
@@ -32,8 +33,8 @@
   <tbody>
   {% for p in provas %}
   <tr>
-    <td><a href="{{ url_for('revisar', prova_id=p.id) }}">{{ p.exame }}</a></td>
-    <td>{{ PECAS_POR_KEY[p.peca_correta].nome }}</td>
+    <td><a href="{{ url_for('revisar', prova_id=p.id) }}">{{ p.exame }}</a>{% if p.origem == 'oficial' and not p.padrao.itens %}<br><span class="selo falhou">Sem tabela de pontos</span>{% endif %}</td>
+    <td>{{ PECAS_POR_KEY[p.peca_correta].nome if p.peca_correta in PECAS_POR_KEY else p.peca_correta }}</td>
     <td>{{ 'Oficial FGV' if p.origem == 'oficial' else 'Caso de treino' }}</td>
     <td>
       <form method="post" action="{{ url_for('excluir', prova_id=p.id) }}" onsubmit="return confirm('Excluir {{ p.exame }} e suas tentativas?')">
@@ -45,4 +46,57 @@
   </tbody>
 </table>
 </div>
+<style>
+  .fila { list-style: none; padding: 0; margin: 1rem 0 0; }
+  .fila li { padding: .55rem .7rem; border-left: 4px solid var(--linha); background: #fff; margin-bottom: .4rem; font-size: .93rem; }
+  .fila li.ok { border-color: var(--certo); }
+  .fila li.erro { border-color: var(--erro); background: var(--erro-fundo); }
+  .fila li.andando { border-color: var(--marca); }
+  .fila .nome { font-weight: 500; word-break: break-all; }
+  .fila .det { display: block; color: var(--tinta-suave); margin-top: .15rem; }
+</style>
+{% endblock %}
+{% block scripts %}
+<script>
+document.getElementById('form-pdf').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const arquivos = [...document.getElementById('pdfs').files];
+  if (!arquivos.length) return;
+  const btn = document.getElementById('btn-pdf'), fila = document.getElementById('fila');
+  btn.disabled = true;
+  fila.innerHTML = '';
+  const itens = arquivos.map(f => {
+    const li = document.createElement('li');
+    const nome = document.createElement('span'); nome.className = 'nome'; nome.textContent = f.name;
+    const det = document.createElement('span'); det.className = 'det'; det.textContent = 'Na fila';
+    li.append(nome, det); fila.appendChild(li);
+    return {f, li, det};
+  });
+  const rotulo = {nova: 'cadastrada', completada: 'já existia; tabela de pontos completada', repetida: 'já estava cadastrada, ignorada'};
+  let feitos = 0;
+  for (const it of itens) {
+    btn.textContent = `Importando ${++feitos} de ${itens.length}…`;
+    it.li.className = 'andando'; it.det.textContent = 'Lendo com a IA…';
+    const dados = new FormData(); dados.append('pdf', it.f);
+    try {
+      const r = await fetch('{{ url_for("api_importar_pdf") }}', {method: 'POST', body: dados});
+      let d;
+      try { d = await r.json(); } catch (e) { throw new Error(r.status === 504 || r.status === 502 ? 'O servidor demorou demais. Tente este arquivo de novo.' : 'Resposta inválida do servidor (' + r.status + ').'); }
+      if (!r.ok) throw new Error(d.erro || 'Falha na importação.');
+      it.det.textContent = '';
+      d.provas.forEach((p, i) => {
+        if (i) it.det.append(document.createElement('br'));
+        const a = document.createElement('a'); a.href = p.link; a.textContent = p.exame;
+        it.det.append(a, ` · ${p.peca} · ${rotulo[p.situacao] || p.situacao}` + (p.tem_pontos ? '' : ' (sem tabela de pontos: envie o padrão de resposta)'));
+      });
+      (d.avisos || []).forEach(av => { it.det.append(document.createElement('br'), 'Aviso: ' + av); });
+      it.li.className = 'ok';
+    } catch (e) {
+      it.li.className = 'erro'; it.det.textContent = e.message;
+    }
+  }
+  btn.disabled = false; btn.textContent = 'Importar provas';
+  document.getElementById('fim').hidden = false;
+});
+</script>
 {% endblock %}

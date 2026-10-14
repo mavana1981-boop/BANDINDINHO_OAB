@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block titulo %}{{ peca.nome }}{% endblock %}
+{% block conteudo %}
+<p class="discreto"><a href="{{ url_for('estruturas') }}">Estruturas</a></p>
+<h1>{{ peca.nome }}</h1>
+<p class="lead">{{ peca.quando }}</p>
+<div class="acoes" style="margin:-.5rem 0 1.5rem">
+  <a class="botao secundario" href="{{ url_for('editar_peca', key=peca.key) }}">Editar estrutura</a>
+  <a class="botao secundario" href="{{ url_for('imprimir_peca', key=peca.key) }}" target="_blank" rel="noopener">Imprimir / PDF</a>
+  {% if peca.editada %}<span class="discreto">Estrutura editada por você</span>{% endif %}
+</div>
+<form class="copiar" method="post" action="{{ url_for('copiar_estrutura', key=peca.key) }}"
+      onsubmit="const s=this.origem; return confirm('Substituir os passos de {{ peca.nome }} pelos de ' + s.options[s.selectedIndex].text.replace(' (editada)', '') + '?\n\nNome, prazo, base legal e endereçamento desta peça continuam iguais. Para desfazer, use Restaurar estrutura original na edição.')">
+  <label for="origem">Copiar estrutura de</label>
+  <select id="origem" name="origem" required>
+    <option value="">Escolha a peça…</option>
+    {% for o in outras|sort(attribute='editada', reverse=true) %}
+    <option value="{{ o.key }}">{{ o.nome }}{% if o.editada %} (editada){% endif %}</option>
+    {% endfor %}
+  </select>
+  <button class="botao secundario" type="submit">Copiar</button>
+</form>
+<style>
+  .copiar { display: flex; flex-wrap: wrap; align-items: center; gap: .6rem; margin: -.75rem 0 1.75rem; }
+  .copiar label { font-weight: 500; }
+  .copiar select { font: 1rem var(--sans); padding: .55rem .6rem; border: 1.5px solid var(--linha); border-radius: 4px; background: #fff; color: var(--tinta); min-width: 15rem; }
+</style>
+<div class="ficha">
+  <section>
+    <h2 style="margin-top:0">Esqueleto-modelo</h2>
+    <ol class="esqueleto">{% for e in peca.estrutura %}{% if e is mapping %}<li class="{{ 'com-cor' if e.cor }} {{ 'conector' if e.conector }}"{% if e.cor %} style="--cor: {{ e.cor }}"{% endif %}>{{ e.html|safe }}</li>{% else %}<li>{{ e }}</li>{% endif %}{% endfor %}</ol>
+  </section>
+  <section>
+    <dl>
+      <dt>Prazo</dt><dd>{{ peca.prazo }}</dd>
+      <dt>Base legal</dt><dd>{{ peca.base_legal }}</dd>
+      <dt>Endereçamento</dt><dd>{{ peca.enderecamento }}</dd>
+      {% if peca.dicas %}<dt>Atenção</dt>{% for d in peca.dicas %}<dd>{{ d }}</dd>{% endfor %}{% endif %}
+    </dl>
+  </section>
+</div>
+<h2>Casos para resolver</h2>
+{% if casos %}
+<div class="rolagem">
+<table class="tabela-provas">
+  <thead><tr><th>Prova</th><th>Começo do enunciado</th><th></th></tr></thead>
+  <tbody>
+  {% for c in casos %}
+  <tr>
+    <td>{{ c.exame }}{% if c.ano %}<br><span class="discreto">{{ c.ano }}</span>{% endif %}</td>
+    <td class="resumo">{{ c.enunciado[:160] }}…</td>
+    <td><a class="botao secundario" href="{{ url_for('redigir', key=peca.key, prova_id=c.id) }}">Redigir</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% else %}
+<p class="aviso">Nenhuma prova importada cobrou esta peça ainda. <a href="{{ url_for('importar') }}">Importe provas</a> para liberar casos.</p>
+{% endif %}
+{% endblock %}

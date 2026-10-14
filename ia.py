@@ -14,20 +14,36 @@ class ErroIA(Exception):
 
 
 def _cliente():
-    if not os.environ.get("ANTHROPIC_API_KEY"):
-        raise ErroIA("Defina a variável ANTHROPIC_API_KEY para usar a correção por IA.")
-    return anthropic.Anthropic()
+    chave = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+    if not chave:
+        raise ErroIA("Defina a variável ANTHROPIC_API_KEY para usar a importação e a correção por IA.")
+    return anthropic.Anthropic(api_key=chave)
+
+
+def _objetos_json(texto):
+    """Lê todos os objetos/listas JSON da resposta, mesmo que venham vários em sequência."""
+    texto = re.sub(r"```(?:json)?", "", texto)
+    dec = json.JSONDecoder()
+    objetos, i = [], 0
+    while True:
+        ini = min([p for p in (texto.find("{", i), texto.find("[", i)) if p != -1], default=-1)
+        if ini == -1:
+            break
+        try:
+            obj, fim = dec.raw_decode(texto, ini)
+        except json.JSONDecodeError:
+            i = ini + 1
+            continue
+        objetos.extend(obj if isinstance(obj, list) else [obj])
+        i = fim
+    objetos = [o for o in objetos if isinstance(o, dict)]
+    if not objetos:
+        raise ErroIA("A IA não devolveu um JSON válido. Tente novamente.")
+    return objetos
 
 
 def _extrair_json(texto):
-    texto = re.sub(r"```(?:json)?", "", texto).strip()
-    ini, fim = texto.find("{"), texto.rfind("}")
-    if ini == -1 or fim == -1:
-        raise ErroIA("A IA não devolveu um JSON válido. Tente novamente.")
-    try:
-        return json.loads(texto[ini:fim + 1])
-    except json.JSONDecodeError as e:
-        raise ErroIA(f"Não foi possível ler a resposta da IA ({e}).")
+    return _objetos_json(texto)[0]
 
 
 def _chamar(system, content, max_tokens):
@@ -90,9 +106,10 @@ def corrigir(prova, peca, resposta):
 def _system_importacao(catalogo):
     chaves = "\n".join(f"- {p['key']}: {p['nome']}" for p in catalogo)
     return f"""Você extrai dados de provas da 2ª fase da OAB (FGV), área Direito do Trabalho.
-Receberá o caderno de prova e/ou o padrão de resposta em PDF. Extraia APENAS a peça prático-profissional (ignore as 4 questões discursivas).
+Receberá um PDF: caderno de prova, padrão de resposta, ou um arquivo com vários exames.
+Extraia APENAS as peças prático-profissionais (ignore as questões discursivas). Se houver mais de um exame no PDF, devolva um item por exame.
 
-Regras:
+Regras para cada item:
 - "enunciado": transcreva o enunciado da peça integralmente, como está na prova.
 - "peca_correta": use exatamente uma das chaves abaixo. Se o padrão aceitar mais de uma peça, use a principal e cite as aceitas na justificativa.
 {chaves}
@@ -102,24 +119,50 @@ Regras:
 - "exame": ex. "XXXVIII Exame" e "ordem": número arábico do exame (ex. 38). "ano": ano de aplicação.
 - Se o PDF não contiver o padrão de resposta, deixe "itens" vazio e "gabarito_texto" vazio.
 
-Responda SOMENTE com JSON:
-{{"exame": "", "ordem": 0, "ano": "", "peca_correta": "", "enunciado": "",
-  "padrao": {{"justificativa": "", "gabarito_texto": "", "itens": [{{"descricao": "", "pontos": 0.0}}]}}}}"""
+Responda SOMENTE com um único JSON, sem markdown:
+{{"provas": [{{"exame": "", "ordem": 0, "ano": "", "peca_correta": "", "enunciado": "",
+  "padrao": {{"justificativa": "", "gabarito_texto": "", "itens": [{{"descricao": "", "pontos": 0.0}}]}}}}]}}"""
+
+
+def importar_pdf(pdf_bytes, catalogo):
+    """Processa UM PDF e devolve a lista de provas encontradas nele."""
+    if not pdf_bytes:
+        raise ErroIA("Arquivo vazio.")
+    content = [
+        {"type": "document", "source": {"type": "base64", "media_type": "application/pdf",
+                                        "data": base64.standard_b64encode(pdf_bytes).decode()}},
+        {"type": "text", "text": "Extraia a(s) peça(s) de Direito do Trabalho conforme as instruções."},
+    ]
+    brutos = []
+    for obj in _objetos_json(_chamar(_system_importacao(catalogo), content, 16000)):
+        brutos.extend(obj["provas"] if isinstance(obj.get("provas"), list) else [obj])
+
+    chaves = {p["key"] for p in catalogo}
+    provas, problemas = [], []
+    for d in brutos:
+        if not isinstance(d, dict) or not d.get("enunciado"):
+            continue
+        if d.get("peca_correta") not in chaves:
+            problemas.append(f"{d.get('exame') or 'prova'}: peça não reconhecida ({d.get('peca_correta')!r})")
+            continue
+        d.setdefault("padrao", {})
+        d["padrao"].setdefault("itens", [])
+        try:
+            d["ordem"] = int(d.get("ordem") or 0)
+        except (TypeError, ValueError):
+            d["ordem"] = 0
+        d["origem"] = "oficial"
+        provas.append(d)
+    if not provas:
+        raise ErroIA("; ".join(problemas) or "Não encontrei o enunciado de nenhuma peça neste PDF.")
+    return provas, problemas
 
 
 def importar_pdfs(pdfs, catalogo):
-    """pdfs: lista de bytes (caderno de prova e/ou padrão de resposta)."""
-    if not pdfs:
+    """Compatibilidade: vários PDFs, um de cada vez. Devolve a primeira prova."""
+    todas = []
+    for b in pdfs:
+        todas.extend(importar_pdf(b, catalogo)[0])
+    if not todas:
         raise ErroIA("Envie ao menos um PDF.")
-    content = [{"type": "document",
-                "source": {"type": "base64", "media_type": "application/pdf",
-                           "data": base64.standard_b64encode(b).decode()}} for b in pdfs]
-    content.append({"type": "text", "text": "Extraia a peça de Direito do Trabalho conforme as instruções."})
-    dados = _extrair_json(_chamar(_system_importacao(catalogo), content, 12000))
-    chaves = {p["key"] for p in catalogo}
-    if dados.get("peca_correta") not in chaves:
-        raise ErroIA(f"Peça não reconhecida no catálogo: {dados.get('peca_correta')!r}.")
-    if not dados.get("enunciado"):
-        raise ErroIA("Não encontrei o enunciado da peça no PDF.")
-    dados["origem"] = "oficial"
-    return dados
+    return todas[0]
