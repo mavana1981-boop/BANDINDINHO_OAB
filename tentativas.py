@@ -1,4 +1,4 @@
-"""Sessões de tentativa do módulo "Qual é a peça" (gravadas no banco)."""
+"""Sessões de tentativa do módulo "Qual é a peça" (gravadas no banco, uma lista por usuário)."""
 import db
 
 
@@ -9,18 +9,23 @@ def init():
     db.query(f"""CREATE TABLE IF NOT EXISTS quiz_respostas (
         id {pk}, sessao_id INTEGER NOT NULL, prova_id INTEGER NOT NULL,
         peca_escolhida TEXT, acertou INTEGER NOT NULL, created_at TEXT)""", commit=True)
+    # a coluna usuario_id de quiz_sessoes é criada em contas.init()
 
 
-def criar(nome=None):
-    n = db.query("SELECT COUNT(*) AS n FROM quiz_sessoes", one=True)["n"]
+def criar(uid, nome=None):
+    n = db.query("SELECT COUNT(*) AS n FROM quiz_sessoes WHERE usuario_id = ?", (uid,), one=True)["n"]
     nome = (nome or "").strip()[:80] or f"Tentativa {n + 1}"
     agora = db.agora()
-    return db.query("INSERT INTO quiz_sessoes (nome, created_at, updated_at) VALUES (?, ?, ?) RETURNING id",
-                    (nome, agora, agora), one=True, commit=True)["id"]
+    return db.query("""INSERT INTO quiz_sessoes (nome, created_at, updated_at, usuario_id)
+                       VALUES (?, ?, ?, ?) RETURNING id""",
+                    (nome, agora, agora, uid), one=True, commit=True)["id"]
 
 
-def obter(sid):
-    return db.query("SELECT * FROM quiz_sessoes WHERE id = ?", (sid,), one=True) if sid else None
+def obter(sid, uid):
+    """Só devolve a tentativa se ela pertencer ao usuário."""
+    if not sid or not uid:
+        return None
+    return db.query("SELECT * FROM quiz_sessoes WHERE id = ? AND usuario_id = ?", (sid, uid), one=True)
 
 
 def resumo(sid, ids_provas):
@@ -35,8 +40,8 @@ def resumo(sid, ids_provas):
     return {"acertos": acertos, "erros": erros, "respondidas": len(rows)}
 
 
-def listar(ids_provas):
-    sessoes = db.query("SELECT * FROM quiz_sessoes ORDER BY id DESC")
+def listar(uid, ids_provas):
+    sessoes = db.query("SELECT * FROM quiz_sessoes WHERE usuario_id = ? ORDER BY id DESC", (uid,))
     total = len(ids_provas)
     for s in sessoes:
         s.update(resumo(s["id"], ids_provas))
@@ -45,6 +50,8 @@ def listar(ids_provas):
         s["pct"] = round(s["n_acertos"] / total * 100) if total else 0
     return sessoes
 
+
+# as funções abaixo recebem um sid já conferido com obter(sid, uid)
 
 def responder(sid, prova_id, peca, acertou):
     agora = db.agora()

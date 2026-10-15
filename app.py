@@ -2,14 +2,16 @@
 import json
 import os
 import random
+from datetime import timedelta
 
 from flask import (Flask, abort, flash, jsonify, redirect, render_template, request,
-                   send_from_directory, session, url_for)
+                   send_from_directory, session, url_for, g)
 
 import db
 import ia
 import tentativas
 import questoes
+import contas
 from formatacao import limpar_passos, normalizar_estrutura
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -44,9 +46,11 @@ def catalogo():
     """Peças do pecas.json com as edições do usuário (gravadas no banco) por cima."""
     edicoes = db.edicoes_pecas()
     pecas = []
+    cores = contas.cores_pecas()
     for p in PECAS_BASE:
         peca = {**p, **edicoes.get(p["key"], {}), "editada": p["key"] in edicoes}
         peca["estrutura"] = normalizar_estrutura(peca.get("estrutura"))
+        peca["cor_nome"] = cores.get(p["key"], "")
         pecas.append(peca)
     return pecas
 
@@ -60,11 +64,15 @@ FREQUENTES = ["contestacao", "recurso_ordinario", "reclamacao_trabalhista", "agr
 db.init_db()
 tentativas.init()
 questoes.init()
+contas.init()
+app.secret_key = contas.chave_secreta()
+app.permanent_session_lifetime = timedelta(days=30)
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
 
 @app.context_processor
 def globais():
-    return {"PECAS_POR_KEY": por_key()}
+    return {"PECAS_POR_KEY": por_key(), "usuario": g.get("usuario")}
 
 
 def _peca_ou_404(key):
@@ -79,6 +87,89 @@ def _prova_ou_404(prova_id):
     if not prova:
         abort(404)
     return prova
+
+
+# ------------------------------------------------------------------ login e permissões
+
+PUBLICAS = {"login", "cadastro", "static"}
+# material compartilhado: só o administrador importa, edita ou exclui
+SO_ADMIN = {"importar", "api_importar_pdf", "revisar", "excluir", "editar_peca", "restaurar_peca",
+            "copiar_estrutura", "api_cor_peca", "api_importar_questoes", "questao_excluir"}
+
+
+def _uid():
+    return g.usuario["id"]
+
+
+def _destino_seguro(url):
+    url = (url or "").rstrip("?")
+    return url if url.startswith("/") and not url.startswith("//") else url_for("inicio")
+
+
+@app.before_request
+def exigir_login():
+    if request.endpoint is None or request.endpoint in PUBLICAS:
+        return None
+    u = contas.obter(session.get("uid"))
+    api = request.path.startswith("/api/")
+    if not u:
+        session.pop("uid", None)
+        if api:
+            return jsonify({"erro": "Sua sessão expirou. Entre de novo para continuar."}), 401
+        return redirect(url_for("login", proximo=request.full_path if request.method == "GET" else None))
+    g.usuario = u
+    if request.endpoint in SO_ADMIN and not u["admin"]:
+        if api:
+            return jsonify({"erro": "Só o administrador pode fazer isso."}), 403
+        flash("Só o administrador pode importar, editar ou excluir o material compartilhado.", "erro")
+        return redirect(url_for("inicio"))
+    return None
+
+
+def _entrar(u):
+    session.clear()
+    session.permanent = True
+    session["uid"] = u["id"]
+
+
+@app.route("/entrar", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        u = contas.autenticar(request.form.get("email"), request.form.get("senha"))
+        if u:
+            _entrar(u)
+            return redirect(_destino_seguro(request.form.get("proximo")))
+        flash("E-mail ou senha incorretos.", "erro")
+    return render_template("login.html", proximo=request.values.get("proximo", ""),
+                           email=request.form.get("email", ""))
+
+
+@app.route("/cadastro", methods=["GET", "POST"])
+def cadastro():
+    convite = bool(os.environ.get("CODIGO_CONVITE", "").strip())
+    if request.method == "POST":
+        try:
+            u = contas.cadastrar(request.form.get("nome"), request.form.get("email"),
+                                 request.form.get("senha"), request.form.get("convite"))
+        except contas.ErroConta as e:
+            flash(str(e), "erro")
+            return render_template("cadastro.html", convite=convite, form=request.form)
+        _entrar(u)
+        flash(f"Conta criada. Bem-vindo, {u['nome']}!" + (" Você é o administrador." if u["admin"] else ""), "ok")
+        return redirect(url_for("inicio"))
+    return render_template("cadastro.html", convite=convite, form={})
+
+
+@app.route("/conta", methods=["GET", "POST"])
+def conta():
+    if request.method == "POST":
+        try:
+            contas.trocar_senha(_uid(), request.form.get("atual"), request.form.get("nova"))
+            flash("Senha alterada.", "ok")
+        except contas.ErroConta as e:
+            flash(str(e), "erro")
+        return redirect(url_for("conta"))
+    return render_template("conta.html")
 
 
 @app.route("/")
@@ -96,9 +187,9 @@ def _ids_provas():
 
 
 def _tentativa_ativa(criar_se_faltar=True):
-    t = tentativas.obter(session.get("tentativa"))
+    t = tentativas.obter(session.get("tentativa"), _uid())
     if not t and criar_se_faltar:
-        t = tentativas.obter(tentativas.criar())
+        t = tentativas.obter(tentativas.criar(_uid()), _uid())
         session["tentativa"] = t["id"]
     return t
 
@@ -107,7 +198,7 @@ def _tentativa_ativa(criar_se_faltar=True):
 def qual_peca_lista():
     provas = db.listar_provas()
     ids = {p["id"] for p in provas}
-    lista = tentativas.listar(ids)
+    lista = tentativas.listar(_uid(), ids)
     ativa = next((t for t in lista if t["id"] == session.get("tentativa")), None)
     return render_template("qual_peca_lista.html", provas=provas, tentativas=lista, ativa=ativa,
                            acertos=set(ativa["acertos"]) if ativa else set(),
@@ -116,13 +207,13 @@ def qual_peca_lista():
 
 @app.post("/qual-e-a-peca/tentativas/nova")
 def tentativa_nova():
-    session["tentativa"] = tentativas.criar(request.form.get("nome"))
+    session["tentativa"] = tentativas.criar(_uid(), request.form.get("nome"))
     return redirect(url_for("qual_peca_sortear"))
 
 
 @app.post("/qual-e-a-peca/tentativas/<int:sid>/continuar")
 def tentativa_continuar(sid):
-    if not tentativas.obter(sid):
+    if not tentativas.obter(sid, _uid()):
         abort(404)
     session["tentativa"] = sid
     return redirect(url_for("qual_peca_sortear"))
@@ -130,7 +221,7 @@ def tentativa_continuar(sid):
 
 @app.post("/qual-e-a-peca/tentativas/<int:sid>/reiniciar")
 def tentativa_reiniciar(sid):
-    t = tentativas.obter(sid)
+    t = tentativas.obter(sid, _uid())
     if not t:
         abort(404)
     tentativas.reiniciar(sid)
@@ -141,7 +232,7 @@ def tentativa_reiniciar(sid):
 
 @app.post("/qual-e-a-peca/tentativas/<int:sid>/excluir")
 def tentativa_excluir(sid):
-    t = tentativas.obter(sid)
+    t = tentativas.obter(sid, _uid())
     if not t:
         abort(404)
     tentativas.excluir(sid)
@@ -155,7 +246,8 @@ def tentativa_excluir(sid):
 def qual_peca_sortear():
     provas = db.listar_provas()
     if not provas:
-        return redirect(url_for("importar"))
+        flash("Ainda não há provas cadastradas.", "erro")
+        return redirect(url_for("qual_peca_lista"))
     t = _tentativa_ativa()
     acertos = set(tentativas.resumo(t["id"], {p["id"] for p in provas})["acertos"])
     pendentes = [p for p in provas if p["id"] not in acertos]
@@ -208,8 +300,8 @@ def api_qual_peca(prova_id):
 
 @app.route("/sair")
 def sair():
-    session.clear()  # só deixa a tentativa em andamento; ela continua salva na lista
-    return redirect(url_for("inicio"))
+    session.clear()  # encerra o login; tudo do usuário continua salvo no banco
+    return redirect(url_for("login"))
 
 
 # ------------------------------------------------------------------ 2. Estruturas
@@ -220,6 +312,16 @@ def estruturas():
     for p in db.listar_provas():
         contagem[p["peca_correta"]] = contagem.get(p["peca_correta"], 0) + 1
     return render_template("estruturas.html", pecas=catalogo(), contagem=contagem)
+
+
+@app.post("/api/estruturas/<key>/cor")
+def api_cor_peca(key):
+    _peca_ou_404(key)
+    try:
+        contas.salvar_cor_peca(key, ((request.get_json(silent=True) or {}).get("cor") or "").strip())
+    except contas.ErroConta as e:
+        return jsonify({"erro": str(e)}), 400
+    return jsonify({"ok": True})
 
 
 @app.route("/estruturas/<key>")
@@ -300,8 +402,10 @@ def api_corrigir(prova_id):
         resultado = ia.corrigir(prova, por_key()[prova["peca_correta"]], resposta)
     except ia.ErroIA as e:
         return jsonify({"erro": str(e)}), 502
-    db.registrar_tentativa(prova_id, "redacao", resposta=resposta, resultado=resultado,
-                           nota=resultado["nota"])
+    db.query("""INSERT INTO tentativas (prova_id, modo, resposta, resultado_json, nota, created_at, usuario_id)
+                VALUES (?, 'redacao', ?, ?, ?, ?, ?)""",
+             (prova_id, resposta, json.dumps(resultado, ensure_ascii=False), resultado["nota"],
+              db.agora(), _uid()), commit=True)
     return jsonify(resultado)
 
 
@@ -385,7 +489,7 @@ def excluir(prova_id):
 
 @app.route("/questoes")
 def questoes_lista():
-    lista = questoes.listar()
+    lista = questoes.listar(_uid())
     exames = {}
     for q in lista:
         exames.setdefault(q["exame"], []).append(q)
@@ -398,7 +502,7 @@ def questao(qid):
     if not q:
         abort(404)
     return render_template("questao.html", q=q, tem_gabarito=questoes.tem_gabarito(q),
-                           tentativas=questoes.tentativas(qid))
+                           tentativas=questoes.tentativas(qid, _uid()))
 
 
 @app.post("/api/questoes/<int:qid>/corrigir")
@@ -416,7 +520,7 @@ def api_corrigir_questao(qid):
         resultado = ia.corrigir_questao(q, respostas)
     except ia.ErroIA as e:
         return jsonify({"erro": str(e)}), 502
-    questoes.registrar(qid, respostas, resultado)
+    questoes.registrar(qid, _uid(), respostas, resultado)
     return jsonify(resultado)
 
 
@@ -447,14 +551,20 @@ def questao_excluir(qid):
 
 @app.route("/historico")
 def historico():
-    return render_template("historico.html", tentativas=db.historico())
+    rows = db.query("""SELECT t.id, t.prova_id, t.modo, t.peca_escolhida, t.acertou, t.nota, t.created_at,
+                              p.exame, p.peca_correta
+                       FROM tentativas t JOIN provas p ON p.id = t.prova_id
+                       WHERE t.usuario_id = ? ORDER BY t.id DESC LIMIT 200""", (_uid(),))
+    return render_template("historico.html", tentativas=rows)
 
 
 @app.route("/historico/<int:tid>")
 def tentativa(tid):
-    t = db.obter_tentativa(tid)
-    if not t or t["modo"] != "redacao":
+    t = db.query("SELECT * FROM tentativas WHERE id = ? AND usuario_id = ? AND modo = 'redacao'",
+                 (tid, _uid()), one=True)
+    if not t:
         abort(404)
+    t["resultado"] = json.loads(t.pop("resultado_json")) if t.get("resultado_json") else None
     return render_template("tentativa.html", t=t, prova=db.obter_prova(t["prova_id"]))
 
 

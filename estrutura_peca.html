@@ -2,13 +2,14 @@
 {% block titulo %}{{ peca.nome }}{% endblock %}
 {% block conteudo %}
 <p class="discreto"><a href="{{ url_for('estruturas') }}">Estruturas</a></p>
-<h1>{{ peca.nome }}</h1>
+<h1{% if peca.cor_nome %} style="color: {{ peca.cor_nome }}"{% endif %}>{{ peca.nome }}</h1>
 <p class="lead">{{ peca.quando }}</p>
 <div class="acoes" style="margin:-.5rem 0 1.5rem">
-  <a class="botao secundario" href="{{ url_for('editar_peca', key=peca.key) }}">Editar estrutura</a>
+  {% if usuario.admin %}<a class="botao secundario" href="{{ url_for('editar_peca', key=peca.key) }}">Editar estrutura</a>{% endif %}
   <a class="botao secundario" href="{{ url_for('imprimir_peca', key=peca.key) }}" target="_blank" rel="noopener">Imprimir / PDF</a>
   {% if peca.editada %}<span class="discreto">Estrutura editada por você</span>{% endif %}
 </div>
+{% if usuario.admin %}
 <form class="copiar" method="post" action="{{ url_for('copiar_estrutura', key=peca.key) }}"
       onsubmit="const s=this.origem; return confirm('Substituir os passos de {{ peca.nome }} pelos de ' + s.options[s.selectedIndex].text.replace(' (editada)', '') + '?\n\nNome, prazo, base legal e endereçamento desta peça continuam iguais. Para desfazer, use Restaurar estrutura original na edição.')">
   <label for="origem">Copiar estrutura de</label>
@@ -25,6 +26,7 @@
   .copiar label { font-weight: 500; }
   .copiar select { font: 1rem var(--sans); padding: .55rem .6rem; border: 1.5px solid var(--linha); border-radius: 4px; background: #fff; color: var(--tinta); min-width: 15rem; }
 </style>
+{% endif %}
 <div class="ficha">
   <section>
     <h2 style="margin-top:0">Esqueleto-modelo</h2>

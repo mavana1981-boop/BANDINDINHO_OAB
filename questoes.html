@@ -4,6 +4,7 @@
 <h1>Questões discursivas</h1>
 <p class="lead">As 4 questões de cada exame, com gabarito e distribuição de pontos da FGV. Responda os itens e a IA corrige linha a linha pela tabela da banca.</p>
 
+{% if usuario.admin %}
 <details class="bloco importador" {% if not total %}open{% endif %}>
   <summary><strong>Importar questões dos PDFs</strong> <span class="discreto">· {{ total }} {{ 'questão cadastrada' if total == 1 else 'questões cadastradas' }}</span></summary>
   <form id="form-q">
@@ -15,6 +16,7 @@
     <p id="fim-q" hidden><a class="botao secundario" href="{{ url_for('questoes_lista') }}">Atualizar a lista</a></p>
   </form>
 </details>
+{% endif %}
 
 {% for exame, qs in exames.items() %}
 <h2>{{ exame }}{% if qs[0].ano %} <span class="discreto">({{ qs[0].ano }})</span>{% endif %}</h2>
@@ -34,7 +36,7 @@
   {% endfor %}
 </ul>
 {% else %}
-<p class="aviso">Nenhuma questão cadastrada ainda. Importe os PDFs de padrão de resposta acima.</p>
+<p class="aviso">Nenhuma questão cadastrada ainda.{% if usuario.admin %} Importe os PDFs de padrão de resposta acima.{% else %} Aguarde o administrador importar as provas.{% endif %}</p>
 {% endfor %}
 
 <style>
@@ -58,6 +60,7 @@
 </style>
 {% endblock %}
 {% block scripts %}
+{% if usuario.admin %}
 <script>
 document.getElementById('form-q').addEventListener('submit', async (ev) => {
   ev.preventDefault();
@@ -95,4 +98,5 @@ document.getElementById('form-q').addEventListener('submit', async (ev) => {
   document.getElementById('fim-q').hidden = false;
 });
 </script>
+{% endif %}
 {% endblock %}

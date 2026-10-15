@@ -11,17 +11,27 @@
 </head>
 <body>
   <header class="topo">
-    <a class="marca-app" href="{{ url_for('inicio') }}">OAB Trabalho · 2ª fase</a>
+    <a class="marca-app" href="/">OAB Trabalho · 2ª fase</a>
+    {% if usuario %}
     {% set ep = request.endpoint or '' %}
     <nav aria-label="Principal">
-      <a href="{{ url_for('qual_peca_lista') }}" {% if ep.startswith('qual_peca') %}aria-current="page"{% endif %}>Qual é a peça</a>
-      <a href="{{ url_for('estruturas') }}" {% if ep in ['estruturas','estrutura_peca','redigir','editar_peca'] %}aria-current="page"{% endif %}>Estruturas</a>
+      <a href="/qual-e-a-peca" {% if ep.startswith('qual_peca') %}aria-current="page"{% endif %}>Qual é a peça</a>
+      <a href="/estruturas" {% if ep in ['estruturas','estrutura_peca','redigir','editar_peca'] %}aria-current="page"{% endif %}>Estruturas</a>
       <a href="/questoes" {% if ep in ['questoes_lista','questao'] %}aria-current="page"{% endif %}>Questões</a>
-      <a href="{{ url_for('importar') }}" {% if ep in ['importar','revisar'] %}aria-current="page"{% endif %}>Provas</a>
-      <a href="{{ url_for('historico') }}" {% if ep in ['historico','tentativa'] %}aria-current="page"{% endif %}>Histórico</a>
-      <a href="{{ url_for('sair') }}" title="Sai da tentativa em andamento">Sair</a>
+      {% if usuario.admin %}<a href="/importar" {% if ep in ['importar','revisar'] %}aria-current="page"{% endif %}>Provas</a>{% endif %}
+      <a href="/historico" {% if ep in ['historico','tentativa'] %}aria-current="page"{% endif %}>Histórico</a>
     </nav>
+    <div class="quem">
+      <a href="/conta" title="Minha conta">{{ usuario.nome }}{% if usuario.admin %} · admin{% endif %}</a>
+      <a href="/sair">Sair</a>
+    </div>
+    {% endif %}
   </header>
+  <style>
+    .topo .quem { margin-left: auto; display: flex; gap: 1rem; font-size: .92rem; }
+    .topo .quem a { color: var(--tinta-suave); text-decoration: none; }
+    .topo .quem a:hover { color: var(--tinta); }
+  </style>
   {% block cheio %}
   <main>
     {% with msgs = get_flashed_messages(with_categories=true) %}

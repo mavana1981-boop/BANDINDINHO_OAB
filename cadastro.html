@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block titulo %}Criar conta{% endblock %}
+{% block conteudo %}
+<div class="porta-conta">
+  <h1>Criar conta</h1>
+  <p class="lead">Cada pessoa tem a própria conta. Ninguém vê as tentativas e respostas dos outros.</p>
+  <form class="bloco form-conta" method="post">
+    <label for="nome">Nome</label>
+    <input id="nome" name="nome" type="text" autocomplete="name" value="{{ form.get('nome', '') }}" required maxlength="80" autofocus>
+    <label for="email">E-mail</label>
+    <input id="email" name="email" type="email" autocomplete="email" value="{{ form.get('email', '') }}" required>
+    <label for="senha">Senha <span class="discreto">(mínimo de 8 caracteres)</span></label>
+    <input id="senha" name="senha" type="password" autocomplete="new-password" minlength="8" required>
+    {% if convite %}
+    <label for="convite">Código de convite</label>
+    <input id="convite" name="convite" type="text" autocomplete="off" required>
+    {% endif %}
+    <button class="botao" type="submit">Criar conta</button>
+  </form>
+  <p>Já tem conta? <a href="{{ url_for('login') }}">Entrar</a></p>
+</div>
+{% include "_conta_estilo.html" %}
+{% endblock %}

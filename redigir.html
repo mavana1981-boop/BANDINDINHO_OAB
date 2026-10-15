@@ -30,7 +30,7 @@
 <script>
 const folha = document.getElementById('folha');
 const contador = document.getElementById('contador');
-const chave = 'rascunho-{{ prova.id }}';
+const chave = 'rascunho-{{ usuario.id }}-{{ prova.id }}';  // rascunho separado por usuário
 const CARACTERES_POR_LINHA = 75; // aproximação de uma linha manuscrita da folha da FGV
 
 function linhas(texto) {

@@ -26,10 +26,11 @@ def tem_gabarito(q):
     return any(i.get("distribuicao") for i in q["itens"])
 
 
-def listar():
+def listar(uid):
     qs = [_hidratar(q) for q in db.query("SELECT * FROM questoes ORDER BY ordem DESC, exame, numero")]
     melhores = {r["questao_id"]: r["melhor"] for r in
-                db.query("SELECT questao_id, MAX(nota) AS melhor FROM questoes_respostas GROUP BY questao_id")}
+                db.query("""SELECT questao_id, MAX(nota) AS melhor FROM questoes_respostas
+                            WHERE usuario_id = ? GROUP BY questao_id""", (uid,))}
     for q in qs:
         q["melhor_nota"] = melhores.get(q["id"])
     return qs
@@ -67,15 +68,17 @@ def excluir(qid):
     db.query("DELETE FROM questoes WHERE id = ?", (qid,), commit=True)
 
 
-def registrar(qid, respostas, resultado):
-    return db.query("""INSERT INTO questoes_respostas (questao_id, respostas_json, resultado_json, nota, created_at)
-                       VALUES (?, ?, ?, ?, ?) RETURNING id""",
+def registrar(qid, uid, respostas, resultado):
+    return db.query("""INSERT INTO questoes_respostas (questao_id, respostas_json, resultado_json, nota, created_at, usuario_id)
+                       VALUES (?, ?, ?, ?, ?, ?) RETURNING id""",
                     (qid, json.dumps(respostas, ensure_ascii=False), json.dumps(resultado, ensure_ascii=False),
-                     resultado.get("nota"), db.agora()), one=True, commit=True)["id"]
+                     resultado.get("nota"), db.agora(), uid), one=True, commit=True)["id"]
 
 
-def tentativas(qid):
-    rows = db.query("SELECT * FROM questoes_respostas WHERE questao_id = ? ORDER BY id DESC", (qid,))
+def tentativas(qid, uid):
+    """Só as respostas do próprio usuário."""
+    rows = db.query("SELECT * FROM questoes_respostas WHERE questao_id = ? AND usuario_id = ? ORDER BY id DESC",
+                    (qid, uid))
     for r in rows:
         r["respostas"] = json.loads(r.pop("respostas_json"))
         r["resultado"] = json.loads(r.pop("resultado_json")) if r.get("resultado_json") else None

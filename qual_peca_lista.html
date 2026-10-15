@@ -55,7 +55,7 @@
   {% endif %}
 </section>
 
-{% if oficiais < meta %}
+{% if oficiais < meta and usuario.admin %}
 <p class="discreto">{{ oficiais }} de {{ meta }} provas oficiais importadas. <a href="{{ url_for('importar') }}">Importe as provas da FGV</a> para ampliar o sorteio.</p>
 {% endif %}
 
@@ -76,7 +76,7 @@
 </table>
 </div>
 {% else %}
-<p class="aviso">Nenhuma prova cadastrada. <a href="{{ url_for('importar') }}">Importe a primeira</a>.</p>
+<p class="aviso">Nenhuma prova cadastrada.{% if usuario.admin %} <a href="{{ url_for('importar') }}">Importe a primeira</a>.{% endif %}</p>
 {% endif %}
 
 <style>

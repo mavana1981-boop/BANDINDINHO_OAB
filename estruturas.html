@@ -3,12 +3,73 @@
 {% block conteudo %}
 <h1>Estruturas</h1>
 <p class="lead">As peças trabalhistas cobradas na 2ª fase, por nome. Abra uma peça para ver o esqueleto-modelo e resolver os casos em que ela foi a resposta.</p>
-<ul class="indice-pecas">
+{% if usuario.admin %}
+<p><button class="botao secundario" type="button" id="modo-cores" aria-pressed="false">Editar cores</button>
+  <span class="discreto" id="aviso-cor" aria-live="polite"></span></p>
+{% endif %}
+<ul class="indice-pecas" id="indice">
   {% for p in pecas %}
-  <li><a href="{{ url_for('estrutura_peca', key=p.key) }}">
-    <span class="nome-peca">{{ p.nome }}</span>
-    <span class="qtd">{% set n = contagem.get(p.key, 0) %}{{ n }} {{ 'caso' if n == 1 else 'casos' }}</span>
-  </a></li>
+  <li data-key="{{ p.key }}">
+    <a href="{{ url_for('estrutura_peca', key=p.key) }}">
+      <span class="nome-peca"{% if p.cor_nome %} style="color: {{ p.cor_nome }}"{% endif %}>{{ p.nome }}</span>
+      <span class="qtd">{% set n = contagem.get(p.key, 0) %}{{ n }} {{ 'caso' if n == 1 else 'casos' }}</span>
+    </a>
+    {% if usuario.admin %}
+    <div class="cores-nome" hidden>
+      {% for nome, cor in [('Padrão',''),('Verde','#2E7A4C'),('Azul','#2B5C8A'),('Vinho','#8A2B3D'),('Vermelho','#B4432F'),('Âmbar','#B07A12'),('Roxo','#6A4C93'),('Cinza','#5F6B66')] %}
+      <button type="button" class="amostra-nome{{ ' sem' if not cor }}" data-cor="{{ cor }}"{% if cor %} style="background: {{ cor }}"{% endif %}
+              title="{{ nome }}" aria-label="Cor {{ nome|lower }} para {{ p.nome }}" aria-pressed="{{ 'true' if (p.cor_nome or '')|lower == cor|lower else 'false' }}"></button>
+      {% endfor %}
+      <label class="cor-livre-nome" title="Outra cor"><span class="sr">Outra cor para {{ p.nome }}</span>
+        <input type="color" value="{{ p.cor_nome or '#1D2B27' }}"></label>
+    </div>
+    {% endif %}
+  </li>
   {% endfor %}
 </ul>
+<style>
+  .indice-pecas li { position: relative; }
+  .cores-nome { display: flex; align-items: center; gap: .3rem; padding: 0 0 .7rem; flex-wrap: wrap; }
+  .amostra-nome { width: 1.35rem; height: 1.35rem; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--linha); padding: 0; cursor: pointer; }
+  .amostra-nome.sem { background: repeating-linear-gradient(45deg, #fff 0 3px, var(--linha) 3px 4px); }
+  .amostra-nome[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--tinta); }
+  .cor-livre-nome input { width: 1.9rem; height: 1.6rem; padding: 0; border: 1px solid var(--linha); border-radius: 4px; background: #fff; cursor: pointer; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  #modo-cores[aria-pressed="true"] { background: var(--toga); color: #fff; }
+</style>
+{% endblock %}
+{% block scripts %}
+{% if usuario.admin %}
+<script>
+const botaoModo = document.getElementById('modo-cores'), aviso = document.getElementById('aviso-cor');
+botaoModo.addEventListener('click', () => {
+  const ativo = botaoModo.getAttribute('aria-pressed') !== 'true';
+  botaoModo.setAttribute('aria-pressed', String(ativo));
+  botaoModo.textContent = ativo ? 'Concluir' : 'Editar cores';
+  document.querySelectorAll('.cores-nome').forEach(d => d.hidden = !ativo);
+});
+
+async function salvar(li, cor) {
+  const nome = li.querySelector('.nome-peca'), anterior = nome.style.color;
+  nome.style.color = cor || '';
+  li.querySelectorAll('.amostra-nome').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.cor.toLowerCase() === cor.toLowerCase())));
+  try {
+    const r = await fetch(`/api/estruturas/${li.dataset.key}/cor`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({cor})
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.erro || 'Não foi possível salvar a cor.');
+    aviso.textContent = 'Cor salva.';
+  } catch (e) {
+    nome.style.color = anterior;
+    aviso.textContent = e.message;
+  }
+}
+document.querySelectorAll('#indice li').forEach(li => {
+  li.querySelectorAll('.amostra-nome').forEach(b => b.addEventListener('click', () => salvar(li, b.dataset.cor)));
+  const livre = li.querySelector('.cor-livre-nome input');
+  if (livre) livre.addEventListener('change', e => salvar(li, e.target.value));
+});
+</script>
+{% endif %}
 {% endblock %}
